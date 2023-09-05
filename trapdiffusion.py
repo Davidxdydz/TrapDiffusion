@@ -38,6 +38,7 @@ class TrapDiffusion:
         if self.sol is None:
             self.solve(self.c)
         
+        plt.figure()
         for key, value in self.vector_description.items():
             plt.plot(self.ts,self.sol[:,key], label = value)
         
