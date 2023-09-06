@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.integrate import odeint
+from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 
 def hadamard(A,B):
@@ -14,18 +14,19 @@ def hadamard(A,B):
 
 class TrapDiffusion:
     def __init__(self, name):
-        self.ts = np.linspace(0, 2, 1000)
+        self.t_final = 2
         self.sol = None
         self.name = name
     
-    def rhs(self,y,t):
+    def rhs(self,t,y):
         raise NotImplementedError("Subclass must implement abstract method")
     
-    def jacobian(self,y,t):
+    def jacobian(self,t,y):
         raise NotImplementedError("Subclass must implement abstract method")
 
     def solve(self,y0):
-        self.sol = odeint(self.rhs, y0, self.ts, Dfun=self.jacobian)
+        self.sol = solve_ivp(fun = self.rhs, y0 = y0, t_span = (0, self.t_final), jac = self.jacobian)
+
 
     def plot_details(self):
         ...
@@ -40,7 +41,7 @@ class TrapDiffusion:
         
         plt.figure()
         for key, value in self.vector_description.items():
-            plt.plot(self.ts,self.sol[:,key], label = value)
+            plt.plot(self.sol.t,self.sol.y[key], label = value)
         
         self.plot_details()
         plt.legend()
