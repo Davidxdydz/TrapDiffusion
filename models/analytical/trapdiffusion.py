@@ -1,0 +1,127 @@
+import numpy as np
+from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
+
+def hadamard(A,B):
+    n_dim_a = len(A.shape)
+    n_dim_b = len(B.shape)
+    if n_dim_a > n_dim_b:
+        return B[:,None]* A
+    elif n_dim_a < n_dim_b:
+        return A[:,None]* B
+    else:
+        return A*B
+
+class TrapDiffusion:
+    def __init__(self, name):
+        self.t_final = 2
+        self.sol = None
+        self.name = name
+    
+    def rhs(self,t,y):
+        raise NotImplementedError("Subclass must implement abstract method")
+    
+    def jacobian(self,t,y):
+        raise NotImplementedError("Subclass must implement abstract method")
+
+    def solve(self,y0):
+        self.sol = solve_ivp(fun = self.rhs, y0 = y0, t_span = (0, self.t_final), jac = self.jacobian, t_eval=np.linspace(0,self.t_final,100))
+
+
+    def plot_details(self):
+        ...
+    
+    @property
+    def vector_description(self):
+        raise NotImplementedError("Subclass must implement abstract method")
+    
+    def plot(self):
+        if self.sol is None:
+            self.solve(self.c)
+        
+        plt.figure()
+        for key, value in self.vector_description.items():
+            plt.plot(self.sol.t,self.sol.y[key], label = value)
+        
+        self.plot_details()
+        plt.legend()
+        plt.ylabel("Concentration")
+        plt.xlabel("Time")
+        plt.title(self.name)
+        plt.grid()
+
+
+class SingleOccupationSingleIsotope(TrapDiffusion):
+    def __init__(self, n_traps = 2,t_final = None):
+        TrapDiffusion.__init__(self, "Single-Occupation, Single-Isotope Model")
+        if t_final is not None:
+            self.t_final = t_final
+        # concentraion of trap sites and solute sites.
+        # c_S_T = [c_S, c_T_1, c_T_2, ...]
+
+        self.c_S_T = np.random.random(n_traps + 1)
+        self.c_S_T = self.c_S_T / np.sum(self.c_S_T)
+        c_S = self.c_S_T[0]
+
+        # site concentration matrix
+        self.C = np.diag(self.c_S_T)
+
+        # max trap conentration, has to be greater than current concentration
+        self.c_Max = np.random.random(n_traps)
+        self.c_Max = self.c_Max * 0.5
+
+        # capture cross-section of trap-site
+        self.sigma = 1
+
+        # base transition rates
+        self.a = np.random.random((n_traps+1,n_traps+1))
+
+        # transition rate matrix
+        # trap to trap terms on the diagonal, (0,0) will be overwritten
+        self.A_tilde = np.diag(-self.a[0,:])
+
+        # solute's losses (0,0)
+        # sigma is constant for all traps at the moment, so can be factored out
+        self.A_tilde[0,0] = -self.sigma * np.sum(self.a[1:,0] * self.c_S_T[1:])
+        
+        # trap's gains from solute (first column)
+        self.A_tilde[1:,0] = self.a[1:,0] * self.c_S_T[1:] * self.sigma
+
+        # solutes gain from traps (first row)
+        self.A_tilde[0,1:] = self.a[0,1:]
+
+        self.A = self.A_tilde @ self.C
+
+        self.B = np.zeros((n_traps+1,n_traps+1))
+
+        # first row
+        self.B[0,1:] = self.a[1:,0] * self.c_S_T[1:] * c_S * self.sigma / self.c_Max
+        # fill in anty-symmetric part
+        self.B[:, 0] = -self.B[0,:]
+
+
+        # random start concetrations
+        self.c = np.random.random(n_traps+1)
+        self.c[1:] *=self.c_Max
+        self.c[0] = 1 - np.sum(self.c[1:]) 
+
+    def rhs(self,t,c):
+        return hadamard(1/self.c_S_T, self.A@c + hadamard(c,self.B@c))
+
+    def jacobian(self,t,c):
+        return hadamard(1/self.c_S_T, self.A + self.B@c + hadamard(c,self.B))
+    
+    @property
+    def vector_description(self):
+        desc = {
+            0: "$c_S$",
+        }
+        for i in range(1, len(self.c)):
+            desc[i] = f"$c_{{T_{i-1}}}$"
+        return desc
+    
+    def plot_details(self):
+        for i, cm in enumerate(self.c_Max):
+            plt.hlines([cm], 0, self.t_final, linestyles = "dashed", color = "black")
+            plt.text(self.t_final, cm, f"$c^{{Max}}_{{t,{i+1}}}$")
+        plt.plot(self.sol.t,np.sum(self.sol.y, axis = 0), label = "$total$")
