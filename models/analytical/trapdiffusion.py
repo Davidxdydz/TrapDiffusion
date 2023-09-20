@@ -48,12 +48,14 @@ class TrapDiffusion:
 
         plt.figure()
         for key, value in self.vector_description.items():
-            plt.plot(self.sol.t, self.sol.y[key], label=value)
+            # to get the concentration in H/lattice site we have to multiply with the trap/solute concentrations c_S_T
+            # otherwise this would be h per solute-site/ trap-site
+            plt.plot(self.sol.t, self.sol.y[key] * self.c_S_T[key], label=value)
 
         self.plot_details()
         plt.legend()
-        plt.ylabel("Concentration")
-        plt.xlabel("Time")
+        plt.ylabel("Concentration [$\\frac{H-atoms}{lattice-sites}$]")
+        plt.xlabel("Time [$s$]")
         plt.title(self.name)
         plt.grid()
 
@@ -135,7 +137,7 @@ class SingleOccupationSingleIsotope(TrapDiffusion):
         """
         c = np.random.random(self.n_traps+1)
         c[1:] *= self.c_Max
-        c[0] = 1 - np.sum(c[1:])
+        c[0] = (1 - np.sum(c[1:]* self.c_S_T[1:])) / self.c_S_T[0]
         return c
 
     def rhs(self, t, c):
@@ -147,15 +149,28 @@ class SingleOccupationSingleIsotope(TrapDiffusion):
     @property
     def vector_description(self):
         desc = {
-            0: "$c_S$",
+            0: "$c_Sc_S$",
         }
         for i in range(1, len(self.c)):
-            desc[i] = f"$c_{{T_{i-1}}}$"
+            desc[i] = f"$c_{{T_{i-1}}}c^T_{i}$"
         return desc
 
     def plot_details(self):
-        for i, cm in enumerate(self.c_Max):
-            plt.hlines([cm], 0, self.t_final,
+        for i, (cm, ct) in enumerate(zip(self.c_Max, self.c_S_T[1:])):
+            # cm : max concentration for trap i in H/trap-site
+            # ct : concentration of trapsites i in H/lattice-site
+            # to get the total concentration of trap i in H/lattice-site we have to multiply cm * ct
+            plt.hlines([cm * ct], 0, self.t_final,
                        linestyles="dashed", color="black")
-            plt.text(self.t_final, cm, f"$c^{{Max}}_{{t,{i+1}}}$")
-        plt.plot(self.sol.t, np.sum(self.sol.y, axis=0), label="$total$")
+            plt.text(self.t_final, cm * ct, f"$c^{{Max}}_{{T_{i+1}}}$")
+        
+        # sol.y contains c_s, c_t_1, c_t_2, ...
+        # c_s is h per solute-site
+        # c_t_i is h per trap-site
+        # again, to get concentration in H/lattice site we have to multiply with the trap/solute concentrations c_S_T
+        corrected = self.sol.y
+        corrected *= self.c_S_T[:,None]
+
+        # total h per lattice site has to stay constant
+        total = np.sum(corrected, axis=0)
+        plt.plot(self.sol.t, total, label="$c_sc^S+\\sum_{i}c_{T_i}\\cdot c_i^T$")
