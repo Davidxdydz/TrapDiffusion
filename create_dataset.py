@@ -1,5 +1,5 @@
-from models.analytical.datasets import create_dataset
-from models.analytical.trapdiffusion import SingleOccupationSingleIsotope
+from models.datasets import create_dataset
+from models.analytical import SingleOccupationSingleIsotope
 import argparse
 
 models = {

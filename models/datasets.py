@@ -3,7 +3,7 @@ from tqdm.auto import tqdm
 import yaml
 import pathlib
 from typing import Union, Dict
-from models.analytical.trapdiffusion import TrapDiffusion
+from models.analytical import TrapDiffusion
 
 
 def create_dataset(
