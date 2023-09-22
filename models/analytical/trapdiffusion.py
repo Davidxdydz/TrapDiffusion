@@ -110,6 +110,14 @@ class TrapDiffusion:
         plt.title(self.name)
         plt.grid()
 
+    def plot_total(self, t, y, correct=False, label="total concentration"):
+        if correct:
+            y *= self.correction_factors()[:, None]
+
+        # total h per lattice site has to stay constant
+        total = np.sum(y, axis=0)
+        plt.plot(t, total, label=label, color="red", linewidth=2, linestyle=":")
+
     def evaluate(self, model, include_params=False, n_eval=50):
         """
         Evaluate the model with the given prediction function.
@@ -123,7 +131,6 @@ class TrapDiffusion:
         outputs *= corrections
         delta = np.abs(outputs - predictions)
         ts = inputs[:, 0]
-        colors = []
         main_axis = plt.gca()
         error_axis = main_axis.twinx()
         for key, value in self.vector_description.items():
@@ -149,13 +156,14 @@ class TrapDiffusion:
         plt.ylabel("Concentration [$\\frac{H-atoms}{lattice-sites}$]")
         plt.xlabel("Time [$s$]")
         plt.title(f"{model.name}")
-        self.plot_details(ts, outputs.T)
-        plt.legend()
+        self.plot_total(ts, predictions.T)
+        plt.legend(loc="center right")
         plt.grid()
+        plt.tight_layout()
 
         plt.sca(error_axis)
         plt.ylabel("Absolute Error [$\\frac{H-atoms}{lattice-sites}$]")
-        plt.legend()
+        plt.legend(loc="center left")
         plt.tight_layout()
 
 
@@ -264,9 +272,6 @@ class SingleOccupationSingleIsotope(TrapDiffusion):
         # c_s is h per solute-site
         # c_t_i is h per trap-site
         # again, to get concentration in H/lattice site we have to multiply with the trap/solute concentrations c_S_T
-        corrected = y.copy()
-        corrected *= self.c_S_T[:, None]
-
-        # total h per lattice site has to stay constant
-        total = np.sum(corrected, axis=0)
-        plt.plot(t, total, label="$c_sc^S+\\sum_{i}c_{T_i}\\cdot c_i^T$")
+        self.plot_total(
+            t, y, correct=True, label="$c_sc^S+\\sum_{i}c_{T_i}\\cdot c_i^T$"
+        )
