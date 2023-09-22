@@ -149,6 +149,7 @@ class TrapDiffusion:
         plt.ylabel("Concentration [$\\frac{H-atoms}{lattice-sites}$]")
         plt.xlabel("Time [$s$]")
         plt.title(f"{model.name}")
+        self.plot_details(ts, outputs.T)
         plt.legend()
         plt.grid()
 
