@@ -19,15 +19,22 @@ def create_dataset(
 ):
     analytical_model = model()
     n_init = len(analytical_model.initial_values())
-    n_params = len(analytical_model.get_relevant_params())
+    n_params = 0
+    if include_params:
+        n_params = len(analytical_model.get_relevant_params())
     # t, c_s, c_t_1, c_t_2, <optional> relevant_params
-    input_dim = 1 + n_init + (n_params if include_params else 0)
+    input_dim = 1 + n_init + n_params
     output_dim = n_init
 
     # double precision is 8 bytes
     bytes_per_sample = (input_dim + output_dim) * 8
 
-    total_samples = configs * initial_per_config * n_timesteps
+    if n_timesteps is not None:
+        total_samples = configs * initial_per_config * n_timesteps
+    else:
+        x, y = analytical_model.training_data(include_params=include_params)
+        total_samples = configs * initial_per_config * len(x)
+    print(f"Estimated samples: {total_samples}")
     print(f"Estimated size: {total_samples*bytes_per_sample/1024**2} MB")
 
     if seed is None:
