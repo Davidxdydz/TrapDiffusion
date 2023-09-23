@@ -33,14 +33,15 @@ class TrapDiffusion:
         """
         raise NotImplementedError("Subclass must implement abstract method")
 
-    def training_data(self, include_params=False, n_eval=None):
+    def training_data(self, include_params=False, n_eval=None, initial_values=None):
         """
         Generate training data from existing parameters but with random initial conditions.
         The format will be two arrays of
         [[t,c0_0,c0_1,..., <optional params>],] and [[ct_0,ct_1,...]]
         which correspond to the training data and the labels.
         """
-        initial_values = self.initial_values()
+        if initial_values is None:
+            initial_values = self.initial_values()
         t, solutions = self.solve(initial_values, n_eval)
         tiled_initial_values = np.tile(initial_values, (len(t), 1))
         if include_params:
@@ -50,7 +51,21 @@ class TrapDiffusion:
         else:
             x = np.hstack([t[:, None], tiled_initial_values])
         y = solutions.T
+        x = self.inputs_transform(x)
+        y = self.targets_transform(y)
         return x, y
+
+    def inputs_transform(self, inputs):
+        return inputs
+
+    def targets_transform(self, targets):
+        return targets
+
+    def inputs_reverse_transform(self, inputs):
+        return inputs
+
+    def targets_reverse_transform(self, targets):
+        return targets
 
     def solve(self, y0, n_eval=None):
         t_eval = None
@@ -73,7 +88,8 @@ class TrapDiffusion:
                 t_span=(0, self.t_final),
                 t_eval=t_eval,
             )
-        return sol.t, sol.y
+        # t = 0 is the initial value, so we can drop it
+        return sol.t[1:], sol.y[:, 1:]
 
     def plot_details(self, t, y):
         ...
@@ -86,12 +102,15 @@ class TrapDiffusion:
         raise NotImplementedError("Subclass must implement abstract method")
 
     @property
-    def ylabel(self):
-        return "Concentration"
+    def y_unit(self):
+        """
+        The unit of the y axis, like $[s]$
+        """
+        return ""
 
     @property
     def xlabel(self):
-        return "Time [$s$]"
+        return "Time $[s]$"
 
     @property
     def xscale(self):
@@ -117,7 +136,7 @@ class TrapDiffusion:
 
         self.plot_details(t, y)
         plt.legend(loc="center right")
-        plt.ylabel(self.ylabel)
+        plt.ylabel(f"Concentration {self.y_unit}")
         plt.xlabel(self.xlabel)
         plt.xscale(self.xscale)
         plt.title(self.name)
@@ -132,32 +151,40 @@ class TrapDiffusion:
         total = np.sum(y, axis=0)
         plt.plot(t, total, label=label, color="red", linewidth=2, linestyle=":")
 
-    def evaluate(self, model, include_params=False, n_eval=50):
+    def evaluate(self, model, include_params=False, n_eval=None, legend=True):
         """
         Evaluate the model with the given prediction function.
         """
-        inputs, outputs = self.training_data(
+        inputs, targets = self.training_data(
             n_eval=n_eval, include_params=include_params
         )
         predictions = model.predict(inputs)
+        predictions = self.targets_reverse_transform(predictions)
+        targets = self.targets_reverse_transform(targets)
+        inputs = self.inputs_reverse_transform(inputs)
+
         corrections = self.correction_factors()
         predictions *= corrections
-        outputs *= corrections
-        delta = np.abs(outputs - predictions)
+        targets *= corrections
+        delta = np.abs(targets - predictions)
         ts = inputs[:, 0]
         main_axis = plt.gca()
         error_axis = main_axis.twinx()
         for key, value in self.vector_description.items():
             p = main_axis.plot(
                 ts,
-                outputs[:, key],
+                targets[:, key],
                 label=f"{value} - analytical",
                 linestyle="--",
                 linewidth=2,
             )
             color = p[0].get_color()
             main_axis.plot(
-                ts, predictions[:, key], label=f"{value} - PINN", color=color
+                ts,
+                predictions[:, key],
+                label=f"{value} - PINN",
+                color=color,
+                marker="x",
             )
             error_axis.plot(
                 ts,
@@ -167,17 +194,21 @@ class TrapDiffusion:
                 linewidth=0.5,
             )
         plt.sca(main_axis)
-        plt.ylabel("Concentration [$\\frac{H-atoms}{lattice-sites}$]")
-        plt.xlabel("Time [$s$]")
+        plt.ylabel(f"Concentration {self.y_unit}")
+        plt.xlabel(self.xlabel)
+        plt.xscale(self.xscale)
         plt.title(f"{model.name}")
         self.plot_total(ts, predictions.T)
-        plt.legend(loc="center right")
+        if legend:
+            plt.legend(loc="center right")
         plt.grid()
         plt.tight_layout()
 
         plt.sca(error_axis)
-        plt.ylabel("Absolute Error [$\\frac{H-atoms}{lattice-sites}$]")
-        plt.legend(loc="center left")
+        plt.xscale(self.xscale)
+        plt.ylabel(f"Absolute Error {self.y_unit}")
+        if legend:
+            plt.legend(loc="center left")
         plt.tight_layout()
 
 
@@ -231,8 +262,8 @@ class SingleOccupationSingleIsotope(TrapDiffusion):
         self.B[:, 0] = -self.B[0, :]
 
     @property
-    def ylabel(self):
-        return "Concentration [$\\frac{H-atoms}{trap-sites}$]"
+    def y_unit(self):
+        return "$\\left[\\frac{H-atoms}{trap-sites}\\right]$"
 
     def get_relevant_params(self):
         relevant_entries = []
@@ -477,9 +508,18 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
         self.plot_total(t, y, correct=True, label="total")
 
     @property
-    def ylabel(self):
-        return "Concentration [$\\frac{trap-sites}{lattice-sites}$]"
+    def y_unit(self):
+        return "$\\left[\\frac{trap-sites}{lattice-sites}\\right]$"
 
     @property
     def xscale(self):
         return "log"
+
+    def inputs_transform(self, inputs):
+        # 13 is empirical
+        inputs[:, 0] = (np.log10(inputs[:, 0]) + 13) / 13
+        return inputs
+
+    def inputs_reverse_transform(self, inputs):
+        inputs[:, 0] = 10 ** (inputs[:, 0] * 13 - 13)
+        return inputs
