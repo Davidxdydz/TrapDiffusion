@@ -1,11 +1,12 @@
 # python setup.py build_ext --inplace
 from setuptools import setup, Extension  
-  
+import pybind11
+
 functions_module = Extension(  
     name ='inference',  
     sources = ['inference_wrapper.cpp', 'inference.cpp'],
     extra_compile_args = ['/O2'],
-    include_dirs = [r'C:\Users\david\AppData\Local\Programs\Python\Python39\Lib\site-packages\pybind11\include']  
+    include_dirs = [pybind11.get_include()] 
 )
   
 setup(ext_modules = [functions_module])
