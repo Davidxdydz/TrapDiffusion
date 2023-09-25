@@ -170,28 +170,28 @@ class TrapDiffusion:
         ts = inputs[:, 0]
         main_axis = plt.gca()
         error_axis = main_axis.twinx()
-        for key, value in self.vector_description.items():
+        for index, description in self.vector_description.items():
             p = main_axis.plot(
                 ts,
-                targets[:, key],
-                label=f"{value} - analytical",
-                linestyle="--",
+                targets[:, index],
+                label=f"{description} - analytical",
                 linewidth=2,
             )
             color = p[0].get_color()
-            main_axis.plot(
+            main_axis.scatter(
                 ts,
-                predictions[:, key],
-                label=f"{value} - PINN",
+                predictions[:, index],
+                label=f"{description} - PINN",
                 color=color,
                 marker="x",
             )
             error_axis.plot(
                 ts,
-                delta[:, key],
-                label=f"$|Error|$ of {value}",
+                delta[:, index],
+                label=f"$|Error|$ of {description}",
                 color=color,
                 linewidth=0.5,
+                linestyle = "--"
             )
         plt.sca(main_axis)
         plt.ylabel(f"Concentration {self.y_unit}")
