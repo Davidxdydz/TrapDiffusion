@@ -111,3 +111,12 @@ class SingleOccupationSingleIsotope(TrapDiffusion):
         self.plot_total(
             t, y, correct=True, label="$c_sc^S+\\sum_{i}c_{T_i}\\cdot c_i^T$"
         )
+
+    def inputs_transform(self, inputs):
+        # normalize time to be from 0 to 1
+        inputs[:,0] =inputs[:,0]/ self.t_final
+        return inputs
+
+    def inputs_reverse_transform(self, inputs):
+        inputs[:,0] = inputs[:,0]* self.t_final
+        return inputs
