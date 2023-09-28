@@ -1,4 +1,4 @@
-from models.datasets import create_dataset
+from training.datasets import create_dataset
 from models.analytical import SingleOccupationSingleIsotope, MultiOccupationMultiIsotope
 import argparse
 
