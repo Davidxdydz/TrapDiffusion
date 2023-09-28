@@ -6,6 +6,16 @@ from typing import Union, Dict
 from models.analytical import TrapDiffusion
 
 
+def load_dataset_info(dataset_name, dataset_dir):
+    """
+    Load the dataset info from the dataset directory.
+    """
+    dataset_dir = pathlib.Path(dataset_dir)
+    dataset_info_file = dataset_dir / dataset_name / "info.yaml"
+    with open(dataset_info_file, "r") as f:
+        info = yaml.safe_load(f)
+    return info
+
 def create_dataset(
     model: type[TrapDiffusion],
     dataset_name,
