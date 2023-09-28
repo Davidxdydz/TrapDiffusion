@@ -66,6 +66,7 @@ def create_dataset(
     info["n_timesteps"] = n_timesteps
     info["include_params"] = include_params
     info["input_dim"] = input_dim
+    info["output_dim"] = output_dim
     info["x"] = "t, c_s, c_t_1, c_t_2" + (", relevant_params" if include_params else "")
     info["y"] = "c_s, c_t_1, c_t_2 at time t"
     info["seed"] = seed
