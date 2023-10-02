@@ -7,6 +7,7 @@ from models.pinn import ModelBuilder
 import numpy as np
 import time
 from training.datasets import load_dataset_info
+import os
 
 
 class CPUModel:
@@ -23,6 +24,8 @@ class CPUModel:
 
     def __init__(self, model: keras.Sequential):
         self.weights, self.biases, self.activations = CPUModel.extract(model)
+        self.input_shape = model.input_shape
+        self.output_shape = model.output_shape
         self.name = model.name
 
     def predict(self, x):
@@ -41,6 +44,16 @@ class CPUModel:
             else:
                 raise NotImplementedError(f"Activation {activation} not implemented")
         return x
+
+
+def load_random_search(directory):
+    models = []
+    for dir in tqdm(os.listdir(directory)):
+        path = os.path.join(directory, dir)
+        if os.path.isdir(path):
+            model = SearchModel.from_dir(path)
+            models.append(model)
+    return models
 
 
 class ParameterRange:
