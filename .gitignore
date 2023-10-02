@@ -5,3 +5,4 @@ build
 *.pyd
 *.so
 .pytest_cache
+random_search
