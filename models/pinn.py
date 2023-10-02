@@ -22,10 +22,6 @@ class ModelBuilder:
         output_activation,
         name,
     ):
-        if len(layer_sizes) != len(activations) - 1:
-            raise ValueError(
-                "activations must be one element longer than layer_sizes. last activation is the output activation"
-            )
         model = keras.Sequential(name=name)
         model.add(keras.layers.Input(shape=(intput_channels,)))
         for size, activation in zip(layer_sizes, activations):
