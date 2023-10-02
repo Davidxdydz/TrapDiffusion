@@ -71,7 +71,7 @@ class ParameterRange:
         elif all(map(lambda x: isinstance(x, str), choices)):
             dtype = str
         if discrete is None:
-            if len(choices) != 2:
+            if len(choices) != 2 or dtype == str:
                 discrete = True
             else:
                 discrete = False
