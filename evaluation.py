@@ -4,6 +4,65 @@ from tqdm.auto import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 from training.utils import CPUModel
+import os
+from training.utils import SearchModel
+import pandas as pd
+import itertools
+
+
+def load_random_search(directory):
+    models = []
+    for dir in tqdm(os.listdir(directory)):
+        path = os.path.join(directory, dir)
+        if os.path.isdir(path):
+            model = SearchModel.from_dir(path)
+            models.append(model)
+    df = pd.DataFrame.from_dict(map(lambda x: x.info(), models))
+    df["max_layer_size"] = df["layer_sizes"].map(max)
+    for i in range(1, 6):
+        df[f"layer_{i}_size"] = df["layer_sizes"].map(
+            lambda x: x[i - 1] if len(x) >= i else None
+        )
+        df[f"layer_{i}_activation"] = df["activations"].map(
+            lambda x: x[i - 1] if len(x) >= i else f"no layer {i}"
+        )
+    return df
+
+
+def plot_color_legend(color_dict, title=None):
+    for k, v in color_dict.items():
+        plt.scatter([], [], color=v, label=k)
+    plt.legend(title=title)
+
+
+def plot_df(df: pd.DataFrame, x: str, y: str, c: str, **kwargs):
+    custom_colors = False
+    if df.dtypes[c].name == "object":
+        custom_colors = True
+        available_colors = itertools.cycle(
+            ["red", "green", "blue", "black", "purple", "orange"]
+        )
+        colors = {}
+
+        def map_colors(x):
+            if x not in colors:
+                colors[x] = next(available_colors)
+            return colors[x]
+
+        col = df[c].map(map_colors)
+    else:
+        col = df[c]
+    df.plot(
+        x=x,
+        y=y,
+        c=col,
+        kind="scatter",
+        grid=True,
+        cmap=None if custom_colors else "viridis",
+        **kwargs,
+    )
+    if custom_colors:
+        plot_color_legend(colors, c)
 
 
 def measure_performance(
