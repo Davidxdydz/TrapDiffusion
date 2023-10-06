@@ -8,6 +8,11 @@ import numpy as np
 import time
 from training.datasets import load_dataset_info
 import os
+import pandas as pd
+import itertools
+
+import itertools
+import matplotlib.pyplot as plt
 
 
 class CPUModel:
@@ -44,16 +49,6 @@ class CPUModel:
             else:
                 raise NotImplementedError(f"Activation {activation} not implemented")
         return x
-
-
-def load_random_search(directory):
-    models = []
-    for dir in tqdm(os.listdir(directory)):
-        path = os.path.join(directory, dir)
-        if os.path.isdir(path):
-            model = SearchModel.from_dir(path)
-            models.append(model)
-    return models
 
 
 class ParameterRange:
@@ -377,6 +372,8 @@ def random_search(generator: SearchModelGenerator, n: int, output_dir=None):
     output_dir.mkdir(exist_ok=True, parents=True)
     with open(output_dir / "info.yaml", "w") as f:
         yaml.safe_dump(generator.info(), f)
+    finished = len(os.listdir(output_dir)) - 1
+    n -= finished
     for _ in tqdm(range(n)):
         model = generator.random_model()
         print(f"Training {model.info()}")
