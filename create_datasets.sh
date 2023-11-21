@@ -7,7 +7,7 @@
 # Job name
 #SBATCH -J create_trap_diffusion_datasets
 #
-#SBATCH --ntasks=1
+#SBATCH --ntasks=3
 #SBATCH --mem=10000
 #
 #SBATCH --mail-type=none
@@ -21,8 +21,8 @@ module load pytorch/gpu-cuda-11.6/2.1.0
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
 source venv/bin/activate
-srun python create_dataset.py --preset SOSI_fixed --verbose False
-srun python create_dataset.py --preset SOSI_random --verbose False
-srun python create_dataset.py --preset MOMI_fixed --verbose False
+srun --ntasks=1 python create_dataset.py --preset SOSI_fixed --verbose False
+srun --ntasks=1 python create_dataset.py --preset SOSI_random --verbose False
+srun --ntasks=1 python create_dataset.py --preset MOMI_fixed --verbose False
 nvidia-smi
 deactivate
