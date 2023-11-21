@@ -21,8 +21,8 @@ module load pytorch/gpu-cuda-11.6/2.1.0
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
 source venv/bin/activate
-python create_dataset.py --preset SOSI_fixed
-python create_dataset.py --preset SOSI_random
-python create_dataset.py --preset MOMI_fixed
+srun python create_dataset.py --preset SOSI_fixed --verbose False
+srun python create_dataset.py --preset SOSI_random --verbose False
+srun python create_dataset.py --preset MOMI_fixed --verbose False
 nvidia-smi
 deactivate
