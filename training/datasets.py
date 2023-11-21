@@ -57,12 +57,12 @@ def create_dataset(
         seed = np.random.randint(0, 2**31 - 1)
     np.random.seed(seed)
     x, y = [], []
-    for _ in tqdm(range(configs), desc="configs", disable=configs == 1 and not verbose):
+    for _ in tqdm(range(configs), desc="configs", disable=configs == 1 or not verbose):
         analytical_model = model()
         for _ in tqdm(
             range(initial_per_config),
             desc="initial_values",
-            disable=configs > 1 and not verbose,
+            disable=configs > 1 or not verbose,
         ):
             x_, y_ = analytical_model.training_data(
                 n_eval=n_timesteps, include_params=include_params
