@@ -4,6 +4,8 @@ import yaml
 import pathlib
 from typing import Union, Dict
 from models.analytical import TrapDiffusion
+import time
+from datetime import timedelta
 
 
 def load_dataset_info(dataset_name, dataset_dir):
@@ -16,6 +18,7 @@ def load_dataset_info(dataset_name, dataset_dir):
         info = yaml.safe_load(f)
     return info
 
+
 def create_dataset(
     model: type[TrapDiffusion],
     dataset_name,
@@ -26,6 +29,7 @@ def create_dataset(
     include_params=False,
     info: Union[Dict, None] = None,
     seed=None,
+    verbose=True,
 ):
     analytical_model = model()
     n_init = len(analytical_model.initial_values())
@@ -44,6 +48,8 @@ def create_dataset(
     else:
         x, y = analytical_model.training_data(include_params=include_params)
         total_samples = configs * initial_per_config * len(x)
+    start = time.perf_counter()
+    print(f"Creating {dataset_name}")
     print(f"Estimated samples: {total_samples}")
     print(f"Estimated size: {total_samples*bytes_per_sample/1024**2} MB")
 
@@ -51,10 +57,12 @@ def create_dataset(
         seed = np.random.randint(0, 2**31 - 1)
     np.random.seed(seed)
     x, y = [], []
-    for _ in tqdm(range(configs), desc="configs", disable=configs == 1):
+    for _ in tqdm(range(configs), desc="configs", disable=configs == 1 and not verbose):
         analytical_model = model()
         for _ in tqdm(
-            range(initial_per_config), desc="initial_values", disable=configs > 1
+            range(initial_per_config),
+            desc="initial_values",
+            disable=configs > 1 and not verbose,
         ):
             x_, y_ = analytical_model.training_data(
                 n_eval=n_timesteps, include_params=include_params
@@ -82,6 +90,8 @@ def create_dataset(
     info["seed"] = seed
     with open(dataset_dir.joinpath("info.yaml"), "w") as f:
         yaml.safe_dump(info, f)
+    end = time.perf_counter()
+    print(f"Created {dataset_name} in {timedelta(seconds = end- start)}")
 
 
 def load_dataset(name, dir="datasets"):

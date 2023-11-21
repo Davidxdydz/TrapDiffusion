@@ -53,6 +53,7 @@ parser.add_argument("--n_timesteps", type=int, default=argparse.SUPPRESS)
 parser.add_argument("--include_params", type=bool, default=argparse.SUPPRESS)
 parser.add_argument("--seed", type=int, default=argparse.SUPPRESS)
 parser.add_argument("--dir", type=str, default=argparse.SUPPRESS)
+parser.add_argument("--verbose", "-v", type=bool, default=True)
 
 args = parser.parse_args()
 
