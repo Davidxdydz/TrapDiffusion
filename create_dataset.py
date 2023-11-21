@@ -53,7 +53,7 @@ parser.add_argument("--n_timesteps", type=int, default=argparse.SUPPRESS)
 parser.add_argument("--include_params", type=bool, default=argparse.SUPPRESS)
 parser.add_argument("--seed", type=int, default=argparse.SUPPRESS)
 parser.add_argument("--dir", type=str, default=argparse.SUPPRESS)
-parser.add_argument("--verbose", "-v", type=bool, default=True)
+parser.add_argument("--quiet", "-q", action=argparse.BooleanOptionalAction)
 
 args = parser.parse_args()
 
@@ -68,6 +68,9 @@ if "dataset_name" not in arg_dict:
 if "preset" in arg_dict:
     # don't pass preset to create_dataset
     del arg_dict["preset"]
+
+arg_dict["verbose"] = not arg_dict["quiet"]
+del arg_dict["quiet"]
 
 if "model" in arg_dict:
     arg_dict["model"] = models[arg_dict["model"]]
