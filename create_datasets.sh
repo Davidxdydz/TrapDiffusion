@@ -8,6 +8,7 @@
 #SBATCH -J create_trap_diffusion_datasets
 #
 #SBATCH --ntasks=1
+#SBATCH --mem=10000
 #
 #SBATCH --mail-type=none
 #SBATCH --mail-user=david.berger@tum.de
