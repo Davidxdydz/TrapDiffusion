@@ -113,6 +113,8 @@ class ParameterRange:
 
 
 class SearchModel:
+    model: keras.Sequential
+
     def __init__(
         self,
         model_builder: ModelBuilder,
@@ -245,7 +247,7 @@ class SearchModel:
         end = time.perf_counter()
         return (end - start) / average / batch
 
-    def train_and_evaluate(self, output_dir=""):
+    def train_and_evaluate(self, output_dir="", quiet=False):
         x, y = self.data
         scheduler = keras.callbacks.ReduceLROnPlateau(
             patience=self.ReduceLROnPlateau_patience,
@@ -267,8 +269,9 @@ class SearchModel:
             shuffle=True,
             validation_split=0.15,
             callbacks=[scheduler, early_stopping],
+            verbose=0 if quiet else 1,
         )
-        predictions = self.model.predict(x, batch_size=2**12)
+        predictions = self.model.predict(x, batch_size=2**12, verbose=0)
         maes = np.mean(np.abs(predictions - y), axis=1)
         self.max_mae = float(np.max(maes))
         self.mean_mae = float(np.mean(maes))
@@ -362,7 +365,9 @@ class SearchModelGenerator:
         raise RuntimeError(f"No suitable model config found in {self.patience} tries.")
 
 
-def random_search(generator: SearchModelGenerator, n: int, output_dir=None):
+def random_search(
+    generator: SearchModelGenerator, n: int, output_dir=None, quiet=False
+):
     models = []
     if output_dir is None:
         output_dir = (
@@ -374,9 +379,9 @@ def random_search(generator: SearchModelGenerator, n: int, output_dir=None):
         yaml.safe_dump(generator.info(), f)
     finished = len(os.listdir(output_dir)) - 1
     n -= finished
-    for _ in tqdm(range(n)):
+    for _ in tqdm(range(n), disable=quiet):
         model = generator.random_model()
         print(f"Training {model.info()}")
-        model.train_and_evaluate(output_dir=output_dir)
+        model.train_and_evaluate(output_dir=output_dir, quiet=quiet)
         models.append(model)
     return models
