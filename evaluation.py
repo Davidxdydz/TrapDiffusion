@@ -10,9 +10,9 @@ import pandas as pd
 import itertools
 
 
-def load_random_search(directory):
+def load_random_search(directory, quiet=False) -> pd.DataFrame:
     models = []
-    for dir in tqdm(os.listdir(directory)):
+    for dir in tqdm(os.listdir(directory), disable=quiet):
         path = os.path.join(directory, dir)
         if os.path.isdir(path):
             model = SearchModel.from_dir(path)
@@ -27,6 +27,13 @@ def load_random_search(directory):
             lambda x: x[i - 1] if len(x) >= i else f"no layer {i}"
         )
     return df
+
+
+def compress_random_search(
+    directory: os.PathLike, output_file: os.PathLike, quiet=False
+):
+    df = load_random_search(directory, quiet=quiet)
+    df.to_pickle(output_file, compression="gzip")
 
 
 def plot_color_legend(color_dict, title=None):
