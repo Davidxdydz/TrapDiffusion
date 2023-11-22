@@ -6,3 +6,5 @@ build
 *.so
 .pytest_cache
 random_search
+venv
+jobs
