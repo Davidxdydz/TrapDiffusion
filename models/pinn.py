@@ -55,7 +55,9 @@ class SOSIFixed(ModelBuilder):
         # recover the correction factors for the physics loss
         np.random.seed(info["seed"])
         analytical = SingleOccupationSingleIsotope()
-        corrections = keras.ops.convert_to_tensor(analytical.correction_factors())
+        corrections = keras.ops.convert_to_tensor(
+            analytical.correction_factors(), dtype="float32"
+        )
 
         model = self.build_model(
             intput_channels=info["input_dim"],
@@ -70,9 +72,9 @@ class SOSIFixed(ModelBuilder):
             """
             Loss function is mae + physics_weight * physics_loss
             """
-            return keras.ops.mean(
-                keras.ops.abs(y_true - y_pred), axis=0
-            ) + physics_weight * keras.ops.abs(1 - y_pred * corrections)
+            mae_loss = keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=1)
+            physics_loss = keras.ops.abs(1 - keras.ops.dot(y_pred, corrections))
+            return mae_loss + physics_weight * physics_loss
 
         return model, physics_loss, (x, y)
 
@@ -102,9 +104,9 @@ class SOSIRandom(ModelBuilder):
             """
             ys = y_true[:, :-3]
             corrections = y_true[:, -3:]
-            return keras.ops.mean(
-                keras.ops.abs(ys - y_pred), axis=0
-            ) + physics_weight * keras.ops.abs(1 - y_pred * corrections)
+            mae_loss = keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=1)
+            physics_loss = keras.ops.abs(1 - keras.ops.dot(y_pred, corrections))
+            return mae_loss + physics_weight * physics_loss
 
         return model, physics_loss, (x, y)
 
@@ -119,7 +121,9 @@ class MOMIFixed(ModelBuilder):
         # recover the correction factors for the physics loss
         np.random.seed(info["seed"])
         analytical = MultiOccupationMultiIsotope()
-        corrections = keras.ops.convert_to_tensor(analytical.correction_factors())
+        corrections = keras.ops.convert_to_tensor(
+            analytical.correction_factors(), dtype="float32"
+        )
 
         model = self.build_model(
             intput_channels=info["input_dim"],
@@ -134,8 +138,8 @@ class MOMIFixed(ModelBuilder):
             """
             Loss function is mae + physics_weight * physics_loss
             """
-            return keras.ops.mean(
-                keras.ops.abs(y_true - y_pred), axis=0
-            ) + physics_weight * keras.ops.abs(1 - y_pred * corrections)
+            mae_loss = keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=1)
+            physics_loss = keras.ops.abs(1 - keras.ops.dot(y_pred, corrections))
+            return mae_loss + physics_weight * physics_loss
 
         return model, physics_loss, (x, y)
