@@ -28,7 +28,7 @@ if __name__ == "__main__":
         layer_sizes=ParameterRange([16, 32, 64, 128, 256]),
         activations=ParameterRange(["relu", "tanh"]),
         output_activation=ParameterRange(["leaky_relu"]),
-        physics_weight=ParameterRange([0, 0.05]),
+        physics_weight=ParameterRange([0, 0.2]),
         epochs=ParameterRange([20, 40]),
         reject=reject,
     )
