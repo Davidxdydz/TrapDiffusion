@@ -6,7 +6,7 @@ import random
 from models.pinn import ModelBuilder
 import numpy as np
 import time
-from training.datasets import load_dataset_info
+from training.datasets import load_dataset_info, load_dataset
 import os
 import pandas as pd
 import itertools
@@ -246,6 +246,9 @@ class SearchModel:
             cpu_model.predict(x)
         end = time.perf_counter()
         return (end - start) / average / batch
+
+    def load_dataset(self):
+        return load_dataset(self.dataset_name, self.dataset_dir)
 
     def train_and_evaluate(self, output_dir="", quiet=False):
         x, y = self.data
