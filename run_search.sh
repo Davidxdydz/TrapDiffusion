@@ -26,6 +26,5 @@ module load pytorch/gpu-cuda-11.6/2.1.0
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
 source venv/bin/activate
-python test.py
-nvidia-smi
+python run_random_search.py --quiet
 deactivate
