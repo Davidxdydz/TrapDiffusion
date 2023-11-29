@@ -10,6 +10,7 @@ from training.datasets import load_dataset_info, load_dataset
 import os
 from dataclasses import dataclass, asdict
 from typing import List
+from models.pinn import ModelBuilder
 
 
 class CPUModel:
@@ -49,13 +50,14 @@ class CPUModel:
 
 
 class ParameterRange:
-    def __init__(self, choices, discrete=None, dtype=None):
+    def __init__(self, choices, discrete=None):
         """
         choices: eiter a list of possible values or a tuple of (lower, upper) bounds
         k: number of values to sample
         discrete: choices are choices or bounds
         dtype: int, float or str
         """
+        dtype = None
         if all(map(lambda x: isinstance(x, int), choices)):
             dtype = int
         elif any(map(lambda x: isinstance(x, float), choices)):
@@ -266,7 +268,7 @@ class SearchModel:
 class SearchModelGenerator:
     def __init__(
         self,
-        model_builder: ModelBuilder,
+        dataset_name: str,
         layer_count: ParameterRange,
         layer_sizes: ParameterRange,
         activations: ParameterRange,
@@ -280,8 +282,9 @@ class SearchModelGenerator:
         EarlyStopping_patience=ParameterRange([6]),
         reject=lambda search_model: False,
         patience=100,
+        dataset_dir="datasets",
     ):
-        self.model_builder = model_builder
+        self.model_builder = ModelBuilder(dataset_name, dataset_dir)
         self.epochs_range = epochs
         self.batch_size_range = batch_size
         self.learning_rate_range = learning_rate
@@ -293,9 +296,7 @@ class SearchModelGenerator:
         self.ReduceLROnPlateau_patience_range = ReduceLROnPlateau_patience
         self.ReduceLROnPlateau_factor_range = ReduceLROnPlateau_factor
         self.EarlyStopping_patience_range = EarlyStopping_patience
-        self.dataset_info = load_dataset_info(
-            model_builder.dataset_name, model_builder.dataset_dir
-        )
+        self.dataset_info = load_dataset_info(dataset_name, dataset_dir)
         self.reject = reject
         self.patience = patience
 
