@@ -62,18 +62,3 @@ class ModelBuilder:
             return (1 - physics_weight) * mae_loss + physics_weight * physics_loss
 
         return model, physics_loss, (x, y_with_corrections), (x, y)
-
-
-class SOSIFixed(ModelBuilder):
-    def __init__(self):
-        ModelBuilder.__init__(self, "Single-Occupation, Single Isotope, fixed matrix")
-
-
-class SOSIRandom(ModelBuilder):
-    def __init__(self):
-        ModelBuilder.__init__(self, "Single-Occupation, Single Isotope, random matrix")
-
-
-class MOMIFixed(ModelBuilder):
-    def __init__(self):
-        ModelBuilder.__init__(self, "Multi-Occupation, Multi Isotope, fixed matrix")
