@@ -74,7 +74,7 @@ class SOSIFixed(ModelBuilder):
             """
             mae_loss = keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=1)
             physics_loss = keras.ops.abs(1 - keras.ops.dot(y_pred, corrections))
-            return mae_loss + physics_weight * physics_loss
+            return (1 - physics_weight) * mae_loss + physics_weight * physics_loss
 
         return model, physics_loss, (x, y)
 
@@ -106,7 +106,7 @@ class SOSIRandom(ModelBuilder):
             corrections = y_true[:, -3:]
             mae_loss = keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=1)
             physics_loss = keras.ops.abs(1 - keras.ops.dot(y_pred, corrections))
-            return mae_loss + physics_weight * physics_loss
+            return (1 - physics_loss) * mae_loss + physics_weight * physics_loss
 
         return model, physics_loss, (x, y)
 
@@ -140,6 +140,6 @@ class MOMIFixed(ModelBuilder):
             """
             mae_loss = keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=1)
             physics_loss = keras.ops.abs(1 - keras.ops.dot(y_pred, corrections))
-            return mae_loss + physics_weight * physics_loss
+            return (1 - physics_loss) * mae_loss + physics_weight * physics_loss
 
         return model, physics_loss, (x, y)
