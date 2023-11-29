@@ -8,11 +8,8 @@ import numpy as np
 import time
 from training.datasets import load_dataset_info, load_dataset
 import os
-import pandas as pd
-import itertools
-
-import itertools
-import matplotlib.pyplot as plt
+from dataclasses import dataclass, asdict
+from typing import List
 
 
 class CPUModel:
@@ -52,7 +49,7 @@ class CPUModel:
 
 
 class ParameterRange:
-    def __init__(self, choices, discrete=None, dtype=None, name=None):
+    def __init__(self, choices, discrete=None, dtype=None):
         """
         choices: eiter a list of possible values or a tuple of (lower, upper) bounds
         k: number of values to sample
@@ -70,7 +67,6 @@ class ParameterRange:
                 discrete = True
             else:
                 discrete = False
-        self.name = name
         self.choices = choices
         self.discrete = discrete
         self.dtype = dtype
@@ -84,7 +80,6 @@ class ParameterRange:
 
     def info(self):
         return dict(
-            name=self.name,
             choices=self.choices,
             discrete=self.discrete,
             dtype=str(self.dtype),
@@ -112,68 +107,50 @@ class ParameterRange:
                 return result
 
 
+@dataclass
 class SearchModel:
-    model: keras.Sequential
+    model_builder: ModelBuilder
+    layer_sizes: List[int]
+    activations: List[str]
+    output_activation: str
+    physics_weight: float
+    epochs: int
+    learning_rate: float
+    batch_size: int
+    ReduceLROnPlateau_patience: int
+    ReduceLROnPlateau_factor: float
+    EarlyStopping_patience: int
+    layer_count: int = None
+    gpu_inference: float = None
+    cpu_inference: float = None
+    mass_loss_mean: float = None
+    mass_loss_std: float = None
+    max_mae: float = None
+    mean_mae: float = None
+    total_mae: float = None
+    save_name: str = None
+    output_path: str = None
+    param_count: int = None
+    model: keras.Sequential = None
+    dataset_name: str = None
+    dataset_dir: str = None
 
-    def __init__(
-        self,
-        model_builder: ModelBuilder,
-        layer_sizes,
-        activations,
-        output_activation,
-        physics_weight,
-        epochs,
-        learning_rate,
-        batch_size,
-        ReduceLROnPlateau_patience,
-        ReduceLROnPlateau_factor,
-        EarlyStopping_patience,
-        layer_count=None,
-        gpu_inference=None,
-        cpu_inference=None,
-        max_mae=None,
-        mean_mae=None,
-        total_mae=None,
-        save_name=None,
-        output_path=None,
-        param_count=None,
-        model=None,
-        dataset_name=None,
-        dataset_dir=None,
-    ):
-        if model_builder is not None:
-            self.dataset_name = model_builder.dataset_name
-            self.dataset_dir = model_builder.dataset_dir
-        if dataset_dir is not None:
-            self.dataset_dir = dataset_dir
-        if dataset_name is not None:
-            self.dataset_name = dataset_name
-        self.model_builder = model_builder
-        self.epochs = epochs
-        self.batch_size = batch_size
-        self.learning_rate = learning_rate
-        self.layer_sizes = layer_sizes
-        self.activations = activations
-        self.output_activation = output_activation
-        self.physics_weight = physics_weight
-        self.ReduceLROnPlateau_patience = ReduceLROnPlateau_patience
-        self.ReduceLROnPlateau_factor = ReduceLROnPlateau_factor
-        self.EarlyStopping_patience = EarlyStopping_patience
-        self.gpu_inference = gpu_inference
-        self.cpu_inference = cpu_inference
-        self.max_mae = max_mae
-        self.mean_mae = mean_mae
-        self.total_mae = total_mae
-        self.save_name = save_name
-        self.output_path = output_path
-        self.param_count = param_count
-        self.model = model
-        self.data = None
-        self.layer_count = layer_count
-
+    def __post_init__(self):
+        if self.model_builder is not None:
+            self.dataset_name = self.model_builder.dataset_name
+            self.dataset_dir = self.model_builder.dataset_dir
+        if self.dataset_dir is not None:
+            self.dataset_dir = self.dataset_dir
+        if self.dataset_name is not None:
+            self.dataset_name = self.dataset_name
         if self.model is None:
             # TODO less shitty way to do this, have to delete data after train and eval
-            self.model, self.loss_function, self.data = self.model_builder.prepare(
+            (
+                self.model,
+                self.loss_function,
+                self.train_data,
+                self.validation_data,
+            ) = self.model_builder.prepare(
                 self.layer_sizes,
                 self.activations,
                 self.physics_weight,
@@ -192,37 +169,29 @@ class SearchModel:
         path = pathlib.Path(path)
         model = keras.models.load_model(path / "model.keras", compile=False)
         with open(path / "info.yaml") as f:
-            info = yaml.safe_load(f)
+            info = yaml.unsafe_load(f)
         return SearchModel(
             model_builder=None,
             **info,
             model=model,
         )
 
+    @staticmethod
+    def dict_factory(data):
+        """
+        Remove not serializable data from dict
+        """
+        left_out = {"model_builder", "model"}
+        return {k: v for k, v in data if k not in left_out}
+
     def info(self):
-        return dict(
-            dataset_name=self.dataset_name,
-            dataset_dir=self.dataset_dir,
-            epochs=self.epochs,
-            batch_size=self.batch_size,
-            learning_rate=self.learning_rate,
-            layer_sizes=self.layer_sizes,
-            layer_count=self.layer_count,
-            activations=self.activations,
-            output_activation=self.output_activation,
-            physics_weight=self.physics_weight,
-            ReduceLROnPlateau_patience=self.ReduceLROnPlateau_patience,
-            ReduceLROnPlateau_factor=self.ReduceLROnPlateau_factor,
-            EarlyStopping_patience=self.EarlyStopping_patience,
-            max_mae=self.max_mae,
-            mean_mae=self.mean_mae,
-            total_mae=self.total_mae,
-            save_name=self.save_name,
-            output_path=str(self.output_path),
-            param_count=self.param_count,
-            gpu_inference=self.gpu_inference,
-            cpu_inference=self.cpu_inference,
+        return asdict(
+            self,
+            dict_factory=SearchModel.dict_factory,
         )
+
+    def load_dataset(self):
+        return load_dataset(self.dataset_name, self.dataset_dir)
 
     def gpu_bench(self, batch=1000, average=10):
         """
@@ -247,11 +216,9 @@ class SearchModel:
         end = time.perf_counter()
         return (end - start) / average / batch
 
-    def load_dataset(self):
-        return load_dataset(self.dataset_name, self.dataset_dir)
-
     def train_and_evaluate(self, output_dir="", quiet=False):
-        x, y = self.data
+        x_train, y_train = self.train_data
+        x_val, y_val = self.validation_data
         scheduler = keras.callbacks.ReduceLROnPlateau(
             patience=self.ReduceLROnPlateau_patience,
             factor=self.ReduceLROnPlateau_factor,
@@ -265,8 +232,8 @@ class SearchModel:
             loss=self.loss_function,
         )
         self.model.fit(
-            x,
-            y,
+            x_train,
+            y_train,
             batch_size=self.batch_size,
             epochs=self.epochs,
             shuffle=True,
@@ -274,23 +241,26 @@ class SearchModel:
             callbacks=[scheduler, early_stopping],
             verbose=0 if quiet else 1,
         )
-        predictions = self.model.predict(x, batch_size=2**12, verbose=0)
-        maes = np.mean(np.abs(predictions - y), axis=1)
+
+        predictions = self.model.predict(x_val, batch_size=2**12, verbose=0)
+        maes = np.mean(np.abs(predictions - y_val), axis=1)
         self.max_mae = float(np.max(maes))
         self.mean_mae = float(np.mean(maes))
         self.total_mae = float(np.sum(maes))
+        output_dim = y_val.shape[1]
+        correction_factors = y_train[:, -output_dim:]
+        mass_loss = 1 - np.sum(predictions * correction_factors, axis=1)
+        self.mass_loss_mean = np.mean(mass_loss)
+        self.mass_loss_std = np.std(mass_loss)
         self.save_name = time.strftime("%Y-%m-%d-%H-%M-%S")
-        self.output_path = pathlib.Path(f"{output_dir}/{self.save_name}").resolve()
+        self.output_path = pathlib.Path(output_dir) / self.save_name
         self.output_path.mkdir(exist_ok=True, parents=True)
         self.model.save(self.output_path / "model.keras")
         with open(self.output_path / "info.yaml", "w") as f:
-            yaml.safe_dump(self.info(), f)
+            yaml.dump(self.info(), f)
 
         # manual memory management in python yeay...
-        self.data = None
-
-    def __repr__(self) -> str:
-        return f"SearchModel({self.info()})"
+        self.train_data = None
 
 
 class SearchModelGenerator:
@@ -379,7 +349,7 @@ def random_search(
     output_dir = pathlib.Path(output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
     with open(output_dir / "info.yaml", "w") as f:
-        yaml.safe_dump(generator.info(), f)
+        yaml.dump(generator.info(), f)
     finished = len(os.listdir(output_dir)) - 1
     n -= finished
     for _ in tqdm(range(n), disable=quiet):

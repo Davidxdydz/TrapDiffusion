@@ -1,7 +1,7 @@
 import numpy as np
 from tqdm.auto import tqdm
 import yaml
-import pathlib
+from pathlib import Path
 from typing import Union, Dict
 from models.analytical import TrapDiffusion
 import time
@@ -12,10 +12,10 @@ def load_dataset_info(dataset_name, dataset_dir):
     """
     Load the dataset info from the dataset directory.
     """
-    dataset_dir = pathlib.Path(dataset_dir)
+    dataset_dir = Path(dataset_dir)
     dataset_info_file = dataset_dir / dataset_name / "info.yaml"
     with open(dataset_info_file, "r") as f:
-        info = yaml.safe_load(f)
+        info = yaml.unsafe_load(f)
     return info
 
 
@@ -41,7 +41,8 @@ def create_dataset(
     output_dim = n_init
 
     # double precision is 8 bytes
-    bytes_per_sample = (input_dim + output_dim) * 8
+    # output_dim * 2 because correction factors are also stored
+    bytes_per_sample = (input_dim + output_dim * 2) * 8
 
     if n_timesteps is not None:
         total_samples = configs * initial_per_config * n_timesteps
@@ -56,7 +57,7 @@ def create_dataset(
     if seed is None:
         seed = np.random.randint(0, 2**31 - 1)
     np.random.seed(seed)
-    x, y = [], []
+    x, y, c = [], [], []
     for _ in tqdm(range(configs), desc="configs", disable=configs == 1 or not verbose):
         analytical_model = model()
         for _ in tqdm(
@@ -67,18 +68,31 @@ def create_dataset(
             x_, y_ = analytical_model.training_data(
                 n_eval=n_timesteps, include_params=include_params
             )
+            c_ = analytical_model.correction_factors()
+            c_ = np.tile(c_, (len(x_), 1))
             x.extend(x_)
             y.extend(y_)
+            c.extend(c_)
 
-    x, y = np.array(x), np.array(y)
-    dir = pathlib.Path(dir)
+    x, y, c = np.array(x), np.array(y), np.array(c)
+    print(f"{x.shape=}")
+    print(f"{y.shape=}")
+    print(f"{c.shape=}")
+    dir = Path(dir)
     dir.mkdir(exist_ok=True)
     dataset_dir = dir.joinpath(dataset_name)
     dataset_dir.mkdir(exist_ok=True)
-    np.save(dataset_dir.joinpath("x.npy"), x)
-    np.save(dataset_dir.joinpath("y.npy"), y)
+    x_path = Path("x.npy")
+    y_path = Path("y.npy")
+    c_path = Path("c.npy")
+    np.save(dataset_dir / x_path, x)
+    np.save(dataset_dir / y_path, y)
+    np.save(dataset_dir / c_path, c)
     if info is None:
         info = dict()
+    info["inputs_path"] = x_path
+    info["targets_path"] = y_path
+    info["corrections_path"] = c_path
     info["configs"] = configs
     info["initial_per_params"] = initial_per_config
     info["n_timesteps"] = n_timesteps
@@ -89,16 +103,17 @@ def create_dataset(
     info["y"] = "c_s, c_t_1, c_t_2 at time t"
     info["seed"] = seed
     with open(dataset_dir.joinpath("info.yaml"), "w") as f:
-        yaml.safe_dump(info, f)
+        yaml.dump(info, f)
     end = time.perf_counter()
     print(f"Created {dataset_name} in {timedelta(seconds = end- start)}")
 
 
 def load_dataset(name, dir="datasets"):
-    dir = pathlib.Path(dir)
+    dir = Path(dir)
     dataset_dir = dir.joinpath(name)
-    x = np.load(dataset_dir.joinpath("x.npy"))
-    y = np.load(dataset_dir.joinpath("y.npy"))
     with open(dataset_dir.joinpath("info.yaml"), "r") as f:
-        info = yaml.safe_load(f)
-    return x, y, info
+        info = yaml.unsafe_load(f)
+    x = np.load(dataset_dir / info["inputs_path"])
+    y = np.load(dataset_dir / info["targets_path"])
+    c = np.load(dataset_dir / info["corrections_path"])
+    return x, y, c, info

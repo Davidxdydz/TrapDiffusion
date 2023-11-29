@@ -35,111 +35,45 @@ class ModelBuilder:
             dataset_dir=self.dataset_dir,
         )
 
-    def prepare(
-        self, layer_sizes, activations, physics_weight, output_activation
-    ) -> Tuple[
-        keras.Sequential,
-        Callable[[keras.KerasTensor, keras.KerasTensor], keras.KerasTensor],
-        Tuple[np.ndarray, np.ndarray],
-    ]:
-        raise NotImplementedError()
+    def prepare(self, layer_sizes, activations, physics_weight, output_activation):
+        x, y, c, info = load_dataset(self.dataset_name, self.dataset_dir)
+
+        # append the correction factors to the labels, to be used in the loss function
+        y_with_corrections = np.append(y, c, axis=1)
+
+        model = self.build_model(
+            intput_channels=info["input_dim"],
+            output_channels=info["output_dim"],
+            layer_sizes=layer_sizes,
+            activations=activations,
+            output_activation=output_activation,
+            name=f"{self.dataset_name}, physics_weight={physics_weight}",
+        )
+
+        def physics_loss(y_true, y_pred):
+            """
+            Loss function is mae + physics_weight * physics_loss
+            """
+            ys = y_true[:, : -info["output_dim"]]
+            corrections = y_true[:, -info["output_dim"] :]
+            mae_loss = keras.ops.mean(keras.ops.abs(ys - y_pred), axis=1)
+            total_mass = keras.ops.sum(y_pred * corrections, axis=1, keepdims=True)
+            physics_loss = keras.ops.abs(1 - total_mass)
+            return (1 - physics_weight) * mae_loss + physics_weight * physics_loss
+
+        return model, physics_loss, (x, y_with_corrections), (x, y)
 
 
 class SOSIFixed(ModelBuilder):
     def __init__(self):
         ModelBuilder.__init__(self, "Single-Occupation, Single Isotope, fixed matrix")
 
-    def prepare(self, layer_sizes, activations, physics_weight, output_activation):
-        x, y, info = load_dataset(self.dataset_name, self.dataset_dir)
-
-        # recover the correction factors for the physics loss
-        np.random.seed(info["seed"])
-        analytical = SingleOccupationSingleIsotope()
-        corrections = keras.ops.convert_to_tensor(
-            analytical.correction_factors(), dtype="float32"
-        )
-
-        model = self.build_model(
-            intput_channels=info["input_dim"],
-            output_channels=info["output_dim"],
-            layer_sizes=layer_sizes,
-            activations=activations,
-            output_activation=output_activation,
-            name=f"{self.dataset_name}, physics_weight={physics_weight}",
-        )
-
-        def physics_loss(y_true, y_pred):
-            """
-            Loss function is mae + physics_weight * physics_loss
-            """
-            mae_loss = keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=1)
-            physics_loss = keras.ops.abs(1 - keras.ops.dot(y_pred, corrections))
-            return (1 - physics_weight) * mae_loss + physics_weight * physics_loss
-
-        return model, physics_loss, (x, y)
-
 
 class SOSIRandom(ModelBuilder):
     def __init__(self):
         ModelBuilder.__init__(self, "Single-Occupation, Single Isotope, random matrix")
 
-    def prepare(self, layer_sizes, activations, physics_weight, output_activation):
-        x, y, info = load_dataset(self.dataset_name, self.dataset_dir)
-
-        # append the correction factors to the labels, to be used in the loss function
-        y = np.append(y, x[:, 4:7], axis=1)
-
-        model = self.build_model(
-            intput_channels=info["input_dim"],
-            output_channels=info["output_dim"],
-            layer_sizes=layer_sizes,
-            activations=activations,
-            output_activation=output_activation,
-            name=f"{self.dataset_name}, physics_weight={physics_weight}",
-        )
-
-        def physics_loss(y_true, y_pred):
-            """
-            Loss function is mae + physics_weight * physics_loss
-            """
-            ys = y_true[:, :-3]
-            corrections = y_true[:, -3:]
-            mae_loss = keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=1)
-            physics_loss = keras.ops.abs(1 - keras.ops.dot(y_pred, corrections))
-            return (1 - physics_loss) * mae_loss + physics_weight * physics_loss
-
-        return model, physics_loss, (x, y)
-
 
 class MOMIFixed(ModelBuilder):
     def __init__(self):
         ModelBuilder.__init__(self, "Multi-Occupation, Multi Isotope, fixed matrix")
-
-    def prepare(self, layer_sizes, activations, physics_weight, output_activation):
-        x, y, info = load_dataset(self.dataset_name, self.dataset_dir)
-
-        # recover the correction factors for the physics loss
-        np.random.seed(info["seed"])
-        analytical = MultiOccupationMultiIsotope()
-        corrections = keras.ops.convert_to_tensor(
-            analytical.correction_factors(), dtype="float32"
-        )
-
-        model = self.build_model(
-            intput_channels=info["input_dim"],
-            output_channels=info["output_dim"],
-            layer_sizes=layer_sizes,
-            activations=activations,
-            output_activation=output_activation,
-            name=f"{self.dataset_name}, physics_weight={physics_weight}",
-        )
-
-        def physics_loss(y_true, y_pred):
-            """
-            Loss function is mae + physics_weight * physics_loss
-            """
-            mae_loss = keras.ops.mean(keras.ops.abs(y_true - y_pred), axis=1)
-            physics_loss = keras.ops.abs(1 - keras.ops.dot(y_pred, corrections))
-            return (1 - physics_loss) * mae_loss + physics_weight * physics_loss
-
-        return model, physics_loss, (x, y)
