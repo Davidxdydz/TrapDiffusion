@@ -1,13 +1,14 @@
 from tqdm.auto import tqdm
 import yaml
 import pathlib
+import os
+os.environ["KERAS_BACKEND"] = "torch"
 import keras
 import random
 from models.pinn import ModelBuilder
 import numpy as np
 import time
 from training.datasets import load_dataset_info, load_dataset
-import os
 from dataclasses import dataclass, asdict
 from typing import List
 from models.pinn import ModelBuilder
