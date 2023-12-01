@@ -1,7 +1,7 @@
 from tqdm.auto import tqdm
 import yaml
 import pathlib
-import keras_core as keras
+import keras
 import random
 from models.pinn import ModelBuilder
 import numpy as np
@@ -342,7 +342,6 @@ class SearchModelGenerator:
 def random_search(
     generator: SearchModelGenerator, n: int, output_dir=None, quiet=False
 ):
-    models = []
     if output_dir is None:
         output_dir = (
             pathlib.Path("random_search") / generator.model_builder.dataset_name
@@ -357,5 +356,3 @@ def random_search(
         model = generator.random_model()
         print(f"Training {model.info()}")
         model.train_and_evaluate(output_dir=output_dir, quiet=quiet)
-        models.append(model)
-    return models

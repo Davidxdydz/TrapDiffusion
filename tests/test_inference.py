@@ -32,7 +32,7 @@ def test_relu():
 #     import numpy as np
 #     from models.analytical import SingleOccupationSingleIsotope
 #     import inference
-#     import keras_core as keras
+#     import keras
 
 #     basic_model = keras.models.load_model("trained_models/SOSI_fixed.keras")
 #     weightsT = []
