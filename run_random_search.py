@@ -17,6 +17,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", "-o", default=None)
     parser.add_argument("--clear", "-c", action="store_true", default=False)
     parser.add_argument("--max_time", default=50e-6)
+    parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument(
         "--dataset_name",
         default="Single-Occupation, Single Isotope, fixed matrix",
@@ -43,7 +44,7 @@ if __name__ == "__main__":
         activations=ParameterRange(["relu", "tanh"]),
         output_activation=ParameterRange(["leaky_relu"]),
         physics_weight=ParameterRange([0.0, 1.0]),
-        epochs=ParameterRange([20, 40]),
+        epochs=ParameterRange([20, 40] if args.epochs is None else [args.epochs]),
         reject=reject,
     )
 
