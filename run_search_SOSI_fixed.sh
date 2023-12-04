@@ -1,7 +1,7 @@
 #!/bin/bash -l
 # Standard output and error:
-#SBATCH -o ./jobs/job.out.%j
-#SBATCH -e ./jobs/job.err.%j
+#SBATCH -o ./logs/job.out.%j
+#SBATCH -e ./logs/job.err.%j
 # Initial working directory:
 #SBATCH -D /raven/u/beda/Source/TrapDiffusion/
 # Job name
@@ -17,14 +17,16 @@
 #
 #SBATCH --mail-type=none
 #SBATCH --mail-user=david.berger@tum.de
-#SBATCH --time=00:01:00
+#SBATCH --time=08:00:00
 
 module purge
 module load anaconda/3/2023.03
 module load pytorch/gpu-cuda-11.6/2.1.0
 
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+export PYTHONUNBUFFERED=1
+export KERAS_BACKEND="torch"
 
 source venv/bin/activate
-python run_random_search.py --quiet
+python run_random_search.py --quiet --n 500 --dataset_name "Single-Occupation, Single Isotope, fixed matrix"
 deactivate

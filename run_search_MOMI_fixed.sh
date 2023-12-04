@@ -5,15 +5,19 @@
 # Initial working directory:
 #SBATCH -D /raven/u/beda/Source/TrapDiffusion/
 # Job name
-#SBATCH -J create_trap_diffusion_datasets
+#SBATCH -J trap_diffusion
 #
-#SBATCH --ntasks=3
-#SBATCH --mem=10000
-#SBATCH --cpus-per-task=1
+#SBATCH --ntasks=1
+#SBATCH --constraint="gpu"
+#
+# --- default case: use a single GPU on a shared node ---
+#SBATCH --gres=gpu:a100:1
+#SBATCH --cpus-per-task=18
+#SBATCH --mem=125000
 #
 #SBATCH --mail-type=none
 #SBATCH --mail-user=david.berger@tum.de
-#SBATCH --time=01:00:00
+#SBATCH --time=08:00:00
 
 module purge
 module load anaconda/3/2023.03
@@ -21,10 +25,8 @@ module load pytorch/gpu-cuda-11.6/2.1.0
 
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export PYTHONUNBUFFERED=1
+export KERAS_BACKEND="torch"
 
 source venv/bin/activate
-srun --exclusive --ntasks=1 --mem=1000 python create_dataset.py --preset SOSI_fixed --quiet &
-srun --exclusive --ntasks=1 --mem=1000 python create_dataset.py --preset SOSI_random --quiet &
-srun --exclusive --ntasks=1 --mem=8000 python create_dataset.py --preset MOMI_fixed --quiet &
-wait
+python run_random_search.py --quiet --n 500 --dataset_name "Multi-Occupation, Multi Isotope, fixed matrix"
 deactivate

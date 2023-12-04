@@ -4,7 +4,7 @@ def test_cpu_vs_gpu():
     import os
 
     os.environ["KERAS_BACKEND"] = "torch"
-    import keras_core as keras
+    import keras
 
     batch_size = 10
 

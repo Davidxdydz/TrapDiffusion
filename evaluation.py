@@ -42,30 +42,32 @@ def plot_color_legend(color_dict, title=None):
     plt.legend(title=title)
 
 
-def plot_df(df: pd.DataFrame, x: str, y: str, c: str, **kwargs):
+def plot_df(df: pd.DataFrame, x: str, y: str, c: str = None, **kwargs):
     custom_colors = False
-    if df.dtypes[c].name == "object":
-        custom_colors = True
-        available_colors = itertools.cycle(
-            ["red", "green", "blue", "black", "purple", "orange"]
-        )
-        colors = {}
+    col = None
+    if c is not None:
+        if df.dtypes[c].name == "object":
+            custom_colors = True
+            available_colors = itertools.cycle(
+                ["red", "green", "blue", "black", "purple", "orange"]
+            )
+            colors = {}
 
-        def map_colors(x):
-            if x not in colors:
-                colors[x] = next(available_colors)
-            return colors[x]
+            def map_colors(x):
+                if x not in colors:
+                    colors[x] = next(available_colors)
+                return colors[x]
 
-        col = df[c].map(map_colors)
-    else:
-        col = df[c]
+            col = df[c].map(map_colors)
+        else:
+            col = df[c]
     df.plot(
         x=x,
         y=y,
         c=col,
         kind="scatter",
         grid=True,
-        cmap=None if custom_colors else "viridis",
+        cmap=None if (custom_colors or c is None) else "viridis",
         **kwargs,
     )
     if custom_colors:

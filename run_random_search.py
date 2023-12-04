@@ -1,4 +1,3 @@
-from models.pinn import SOSIFixed
 import pathlib
 import shutil
 from training.utils import (
@@ -7,7 +6,6 @@ from training.utils import (
     ParameterRange,
     SearchModel,
 )
-import matplotlib.pyplot as plt
 from evaluation import compress_random_search
 import argparse
 
@@ -45,7 +43,7 @@ if __name__ == "__main__":
         activations=ParameterRange(["relu", "tanh"]),
         output_activation=ParameterRange(["leaky_relu"]),
         physics_weight=ParameterRange([0.0, 1.0]),
-        epochs=ParameterRange([1, 1]),
+        epochs=ParameterRange([20, 40]),
         reject=reject,
     )
 

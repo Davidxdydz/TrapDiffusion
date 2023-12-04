@@ -1,11 +1,9 @@
-from models.analytical import SingleOccupationSingleIsotope, MultiOccupationMultiIsotope
 from training.datasets import load_dataset
 import numpy as np
 import os
-from typing import Tuple, Callable
 
 os.environ["KERAS_BACKEND"] = "torch"
-import keras_core as keras
+import keras
 
 
 class ModelBuilder:
