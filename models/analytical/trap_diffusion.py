@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
+
 def hadamard(A, B):
     n_dim_a = len(A.shape)
     n_dim_b = len(B.shape)
@@ -11,6 +12,7 @@ def hadamard(A, B):
         return A[:, None] * B
     else:
         return A * B
+
 
 class TrapDiffusion:
     def __init__(self, name, use_jacobian=False, t_final=2):
@@ -149,12 +151,20 @@ class TrapDiffusion:
         total = np.sum(y, axis=0)
         plt.plot(t, total, label=label, color="red", linewidth=2, linestyle=":")
 
-    def evaluate(self, model, include_params=False, n_eval=None, legend=True):
+    def evaluate(
+        self,
+        model,
+        include_params=False,
+        n_eval=None,
+        legend=True,
+        pre_normalized=False,
+    ):
         """
         Evaluate the model with the given prediction function.
         """
         inputs, targets = self.training_data(
-            n_eval=n_eval, include_params=include_params
+            n_eval=n_eval,
+            include_params=include_params,
         )
         predictions = model.predict(inputs)
         predictions = self.targets_reverse_transform(predictions)
@@ -162,7 +172,8 @@ class TrapDiffusion:
         inputs = self.inputs_reverse_transform(inputs)
 
         corrections = self.correction_factors()
-        predictions *= corrections
+        if not pre_normalized:
+            predictions *= corrections
         targets *= corrections
         delta = np.abs(targets - predictions)
         ts = inputs[:, 0]
@@ -189,7 +200,7 @@ class TrapDiffusion:
                 label=f"$|Error|$ of {description}",
                 color=color,
                 linewidth=0.5,
-                linestyle = "--"
+                linestyle="--",
             )
         plt.sca(main_axis)
         plt.ylabel(f"Concentration {self.y_unit}")
