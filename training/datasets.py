@@ -30,6 +30,7 @@ def create_dataset(
     info: Union[Dict, None] = None,
     seed=None,
     verbose=True,
+    pre_normalized=False,
 ):
     analytical_model = model()
     n_init = len(analytical_model.initial_values())
@@ -75,9 +76,8 @@ def create_dataset(
             c.extend(c_)
 
     x, y, c = np.array(x), np.array(y), np.array(c)
-    print(f"{x.shape=}")
-    print(f"{y.shape=}")
-    print(f"{c.shape=}")
+    if pre_normalized:
+        y *= c
     dir = Path(dir)
     dir.mkdir(exist_ok=True)
     dataset_dir = dir.joinpath(dataset_name)
@@ -100,8 +100,13 @@ def create_dataset(
     info["input_dim"] = input_dim
     info["output_dim"] = output_dim
     info["x"] = "t, c_s, c_t_1, c_t_2" + (", relevant_params" if include_params else "")
-    info["y"] = "c_s, c_t_1, c_t_2 at time t"
+    info["y"] = (
+        "solute and trap concentration at time t"
+        if not pre_normalized
+        else "solute and trap concentrations at time t normalized by corrections, sum to 1"
+    )
     info["seed"] = seed
+    info["pre_normalized"] = pre_normalized
     with open(dataset_dir.joinpath("info.yaml"), "w") as f:
         yaml.dump(info, f)
     end = time.perf_counter()
@@ -112,8 +117,8 @@ def load_dataset(name, dir="datasets"):
     dir = Path(dir)
     dataset_dir = dir.joinpath(name)
     with open(dataset_dir.joinpath("info.yaml"), "r") as f:
-        info = yaml.unsafe_load(f)
-    x = np.load(dataset_dir / info["inputs_path"])
-    y = np.load(dataset_dir / info["targets_path"])
-    c = np.load(dataset_dir / info["corrections_path"])
+        info: dict = yaml.unsafe_load(f)
+    x: np.ndarray = np.load(dataset_dir / info["inputs_path"])
+    y: np.ndarray = np.load(dataset_dir / info["targets_path"])
+    c: np.ndarray = np.load(dataset_dir / info["corrections_path"])
     return x, y, c, info
