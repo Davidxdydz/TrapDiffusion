@@ -18,6 +18,17 @@ presets = {
         "seed": 1,
         "dir": "datasets",
     },
+    "SOSI_fixed_normalized": {
+        "model": "SOSI",
+        "dataset_name": "Single-Occupation, Single Isotope, fixed matrix, normalized",
+        "configs": 1,
+        "initial_per_config": 10000,
+        "n_timesteps": 100,
+        "include_params": False,
+        "seed": 1,
+        "dir": "datasets",
+        "pre_normalized": True,
+    },
     "SOSI_random": {
         "model": "SOSI",
         "dataset_name": "Single-Occupation, Single Isotope, random matrix",
@@ -28,6 +39,17 @@ presets = {
         "seed": 1,
         "dir": "datasets",
     },
+    "SOSI_random_normalized": {
+        "model": "SOSI",
+        "dataset_name": "Single-Occupation, Single Isotope, random matrix, normalized",
+        "configs": 1000,
+        "initial_per_config": 100,
+        "n_timesteps": 50,
+        "include_params": True,
+        "seed": 1,
+        "dir": "datasets",
+        "pre_normalized": True,
+    },
     "MOMI_fixed": {
         "model": "MOMI",
         "dataset_name": "Multi-Occupation, Multi Isotope, fixed matrix",
@@ -37,6 +59,17 @@ presets = {
         "include_params": False,
         "seed": 1,
         "dir": "datasets",
+    },
+    "MOMI_fixed_normalized": {
+        "model": "MOMI",
+        "dataset_name": "Multi-Occupation, Multi Isotope, fixed matrix, normalized",
+        "configs": 1,
+        "initial_per_config": 10000,
+        "n_timesteps": None,
+        "include_params": False,
+        "seed": 1,
+        "dir": "datasets",
+        "pre_normalized": True,
     },
 }
 
