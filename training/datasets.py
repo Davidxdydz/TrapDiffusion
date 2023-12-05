@@ -38,12 +38,12 @@ def create_dataset(
     if include_params:
         n_params = len(analytical_model.get_relevant_params())
     # t, c_s, c_t_1, c_t_2, <optional> relevant_params
-    input_dim = 1 + n_init + n_params
-    output_dim = n_init
+    input_channels = 1 + n_init + n_params
+    output_channels = n_init
 
     # double precision is 8 bytes
-    # output_dim * 2 because correction factors are also stored
-    bytes_per_sample = (input_dim + output_dim * 2) * 8
+    # output_channels * 2 because correction factors are also stored
+    bytes_per_sample = (input_channels + output_channels * 2) * 8
 
     if n_timesteps is not None:
         total_samples = configs * initial_per_config * n_timesteps
@@ -97,8 +97,8 @@ def create_dataset(
     info["initial_per_params"] = initial_per_config
     info["n_timesteps"] = n_timesteps
     info["include_params"] = include_params
-    info["input_dim"] = input_dim
-    info["output_dim"] = output_dim
+    info["input_channels"] = input_channels
+    info["output_channels"] = output_channels
     info["x"] = "t, c_s, c_t_1, c_t_2" + (", relevant_params" if include_params else "")
     info["y"] = (
         "solute and trap concentration at time t"

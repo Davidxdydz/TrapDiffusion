@@ -217,8 +217,8 @@ class SearchModel:
         self.mean_mae = float(np.mean(maes))
         self.total_mae = float(np.sum(maes))
         if not info.get("pre_normalized", False):
-            output_dim = y_val.shape[-1]
-            correction_factors = y_train[:, -output_dim:]
+            output_channels = y_val.shape[-1]
+            correction_factors = y_train[:, -output_channels:]
             mass_loss = 1 - np.sum(predictions * correction_factors, axis=1)
         else:
             mass_loss = 1 - np.sum(predictions, axis=1)

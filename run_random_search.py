@@ -41,8 +41,8 @@ if __name__ == "__main__":
     info = load_dataset_info(args.dataset_name, "datasets")
 
     sosi_fixed_generator = SearchModelGenerator(
-        input_channels=info["input_dim"],
-        output_channels=info["output_dim"],
+        input_channels=info["input_channels"],
+        output_channels=info["output_channels"],
         layer_count=ParameterRange([1, 4]),
         layer_sizes=ParameterRange([16, 32, 64, 128, 256]),
         activations=ParameterRange(["relu", "tanh"]),
