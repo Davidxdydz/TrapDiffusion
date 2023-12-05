@@ -1,4 +1,41 @@
-def test_cpu_vs_gpu():
+def test_cpu_vs_gpu_random():
+    import numpy as np
+    import numpy as np
+    from models.cpu import CPUSequential
+    from models.cpu.layers import CPULayer
+    import os
+    from models.pinn import Normalizer
+
+    os.environ["KERAS_BACKEND"] = "torch"
+    import keras
+
+    # now build a model containing all available cpu layers
+    gpu_model = keras.Sequential()
+    gpu_model.add(keras.layers.Input(shape=(10,)))
+    gpu_model.add(keras.layers.Dense(10, activation="relu"))
+    gpu_model.add(Normalizer())
+
+    cpu_model = CPUSequential(gpu_model)
+
+    # check all layers are used
+    for layer in CPULayer.cpu_translation:
+        assert any(
+            isinstance(x, layer) for x in gpu_model.layers
+        ), f"Layer {layer} not used in test, test is wrong"
+
+    # check the model is the same
+    inputs = np.random.uniform(0, 1, (10, 10)).astype(np.float32)
+    gpu_predictions = gpu_model.predict(inputs)
+    cpu_predictions = cpu_model.predict(inputs)
+    diff = np.abs(gpu_predictions - cpu_predictions)
+    assert np.allclose(
+        diff,
+        0,
+        atol=1e-6,
+    ), f"max error: {diff.max()}, activations: {cpu_model.activations}"
+
+
+def test_cpu_vs_gpu_trained():
     import numpy as np
     from models.cpu import CPUSequential
     import os
