@@ -15,7 +15,7 @@ def load_random_search(directory, quiet=False) -> pd.DataFrame:
     for dir in tqdm(os.listdir(directory), disable=quiet):
         path = os.path.join(directory, dir)
         if os.path.isdir(path):
-            model = SearchModel.from_dir(path)
+            model = SearchModel.load(path)
             models.append(model)
     df = pd.DataFrame.from_dict(map(lambda x: x.info(), models))
     df["max_layer_size"] = df["layer_sizes"].map(max)

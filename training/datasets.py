@@ -121,4 +121,16 @@ def load_dataset(name, dir="datasets"):
     x: np.ndarray = np.load(dataset_dir / info["inputs_path"])
     y: np.ndarray = np.load(dataset_dir / info["targets_path"])
     c: np.ndarray = np.load(dataset_dir / info["corrections_path"])
-    return x, y, c, info
+    x_train = x
+    x_val = x
+    y_train = None
+    y_val = None
+    pre_normalized = info.get("pre_normalized", False)
+    if not pre_normalized:
+        # append the correction factors to the labels, to be used in the loss function
+        y_train = np.append(y, c, axis=1)
+        y_val = y
+    else:
+        y_train = y
+        y_val = y
+    return info, (x_train, y_train), (x_val, y_val)

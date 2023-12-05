@@ -7,6 +7,7 @@ from training.utils import (
     SearchModel,
 )
 from evaluation import compress_random_search
+from training.datasets import load_dataset_info
 import argparse
 
 
@@ -37,21 +38,26 @@ if __name__ == "__main__":
     def reject(search_model: SearchModel):
         return search_model.cpu_inference > args.max_time  # 50 microseconds
 
+    info = load_dataset_info(args.dataset_name, "datasets")
+
     sosi_fixed_generator = SearchModelGenerator(
-        args.dataset_name,
+        input_channels=info["input_dim"],
+        output_channels=info["output_dim"],
         layer_count=ParameterRange([1, 4]),
         layer_sizes=ParameterRange([16, 32, 64, 128, 256]),
         activations=ParameterRange(["relu", "tanh"]),
         output_activation=ParameterRange(["leaky_relu"]),
         physics_weight=ParameterRange([0.0, 1.0]),
         epochs=ParameterRange([20, 40] if args.epochs is None else [args.epochs]),
+        pre_normalized=info.get("pre_normalized", False),
         reject=reject,
     )
 
     random_search(
-        sosi_fixed_generator,
-        args.n,
-        output_dir,
+        dataset_name=args.dataset_name,
+        output_dir=output_dir,
+        generator=sosi_fixed_generator,
+        n=args.n,
         quiet=args.quiet,
     )
     compress_random_search(
