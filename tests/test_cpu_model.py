@@ -1,6 +1,6 @@
 def test_cpu_vs_gpu():
     import numpy as np
-    from training.utils import CPUModel
+    from models.cpu import CPUSequential
     import os
 
     os.environ["KERAS_BACKEND"] = "torch"
@@ -14,7 +14,7 @@ def test_cpu_vs_gpu():
         # this is needed for some reason, as keras creates a temporary file/folder for model execution, which contains the model name
         # therefore the model can't have some characters in its name which is weird because it works in the notebooks
         gpu_model.name = "test"
-        cpu_model = CPUModel(gpu_model)
+        cpu_model = CPUSequential(gpu_model)
         inputs = np.random.uniform(
             0, 1, (batch_size, *cpu_model.input_shape[1:])
         ).astype(np.float32)

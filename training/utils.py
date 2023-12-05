@@ -12,67 +12,8 @@ import time
 from training.datasets import load_dataset_info, load_dataset
 from dataclasses import dataclass, asdict
 from typing import List
-from models.pinn import ModelBuilder, Normalizer
-
-
-class CPUNormalizer:
-    def __call__(self, inputs):
-        sums = np.sum(inputs, axis=1, keepdims=True)
-        return inputs / sums
-
-
-class CPUDense:
-    @staticmethod
-    def from_keras(layer: keras.layers.Dense):
-        weights = layer.get_weights()[0]
-        biases = layer.get_weights()[1]
-        activation = layer.activation.__name__
-        return CPUDense(weights, biases, activation)
-
-    def __init__(self, weights, biases, activation):
-        self.weights = weights
-        self.biases = biases
-        self.activation = activation
-
-    def __call__(self, inputs):
-        x = inputs @ self.weights + self.biases
-        if self.activation == "relu":
-            x[x < 0] = 0
-        elif self.activation == "linear":
-            ...
-        elif self.activation == "tanh":
-            x = np.tanh(x)
-        elif self.activation == "leaky_relu":
-            x[x < 0] = 0.3 * x[x < 0]
-        elif self.activation == "sigmoid":
-            x = 1 / (1 + np.exp(-x))
-        else:
-            raise NotImplementedError(f"Activation {self.activation} not implemented")
-        return x
-
-
-class CPUModel:
-    def get_from(self, pinn: keras.Sequential):
-        layers = []
-        for layer in pinn.layers:
-            if isinstance(layer, keras.layers.Dense):
-                layers.append(CPUDense.from_keras(layer))
-            elif isinstance(layer, Normalizer):
-                layers.append(CPUNormalizer())
-            else:
-                raise NotImplementedError(f"Layer {layer} not implemented")
-        self.layers = layers
-
-    def __init__(self, model: keras.Sequential):
-        self.get_from(model)
-        self.input_shape = model.input_shape
-        self.output_shape = model.output_shape
-        self.name = model.name
-
-    def predict(self, x):
-        for layer in self.layers:
-            x = layer(x)
-        return x
+from models.pinn import ModelBuilder
+from models.cpu import CPUSequential
 
 
 class ParameterRange:
@@ -83,27 +24,26 @@ class ParameterRange:
         discrete: choices are choices or bounds
         dtype: int, float or str
         """
-        dtype = None
+        self.dtype = None
         if all(map(lambda x: isinstance(x, int), choices)):
-            dtype = int
+            self.dtype = int
         elif any(map(lambda x: isinstance(x, float), choices)):
-            dtype = float
+            self.dtype = float
         elif all(map(lambda x: isinstance(x, str), choices)):
-            dtype = str
+            self.dtype = str
         if discrete is None:
-            if len(choices) != 2 or dtype == str:
+            if len(choices) != 2 or self.dtype == str:
                 discrete = True
             else:
                 discrete = False
         self.choices = choices
         self.discrete = discrete
-        self.dtype = dtype
         if not discrete:
             if len(choices) != 2:
                 raise ValueError(
                     "Continuous parameters must have exactly two choices: lower and upper bound"
                 )
-            if dtype not in [int, float]:
+            if self.dtype not in [int, float]:
                 raise ValueError("Continuous parameters must have dtype int or float")
 
     def info(self):
@@ -237,7 +177,7 @@ class SearchModel:
         Inference time in seconds per sample
         """
         x = np.random.uniform(size=(batch, self.model.input_shape[1]))
-        cpu_model = CPUModel(self.model)
+        cpu_model = CPUSequential(self.model)
         start = time.perf_counter()
         for _ in range(average):
             cpu_model.predict(x)

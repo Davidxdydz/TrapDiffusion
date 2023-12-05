@@ -3,7 +3,7 @@ import time
 from tqdm.auto import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
-from training.utils import CPUModel
+from models.cpu import CPUSequential
 import os
 from training.utils import SearchModel
 import pandas as pd
@@ -76,7 +76,7 @@ def plot_df(df: pd.DataFrame, x: str, y: str, c: str = None, **kwargs):
 
 def measure_performance(
     analytical_model: type[TrapDiffusion],
-    surrogate_model: CPUModel,
+    surrogate_model: CPUSequential,
     batch_size=1,
     average=10,
 ):
