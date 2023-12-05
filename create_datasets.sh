@@ -7,13 +7,13 @@
 # Job name
 #SBATCH -J create_trap_diffusion_datasets
 #
-#SBATCH --ntasks=3
-#SBATCH --mem=10000
+#SBATCH --ntasks=6
+#SBATCH --mem=60000
 #SBATCH --cpus-per-task=1
 #
 #SBATCH --mail-type=none
 #SBATCH --mail-user=david.berger@tum.de
-#SBATCH --time=01:00:00
+#SBATCH --time=02:00:00
 
 module purge
 module load anaconda/3/2023.03
@@ -23,8 +23,11 @@ export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 export PYTHONUNBUFFERED=1
 
 source venv/bin/activate
-srun --exclusive --ntasks=1 --mem=1000 python create_dataset.py --preset SOSI_fixed --quiet &
-srun --exclusive --ntasks=1 --mem=1000 python create_dataset.py --preset SOSI_random --quiet &
-srun --exclusive --ntasks=1 --mem=8000 python create_dataset.py --preset MOMI_fixed --quiet &
+srun --exclusive --ntasks=1 --mem=10000 python create_dataset.py --preset SOSI_fixed --quiet &
+srun --exclusive --ntasks=1 --mem=10000 python create_dataset.py --preset SOSI_random --quiet &
+srun --exclusive --ntasks=1 --mem=10000 python create_dataset.py --preset MOMI_fixed --quiet &
+srun --exclusive --ntasks=1 --mem=10000 python create_dataset.py --preset SOSI_fixed_normalized --quiet &
+srun --exclusive --ntasks=1 --mem=10000 python create_dataset.py --preset SOSI_random_normalized --quiet &
+srun --exclusive --ntasks=1 --mem=10000 python create_dataset.py --preset MOMI_fixed_normalized --quiet &
 wait
 deactivate
