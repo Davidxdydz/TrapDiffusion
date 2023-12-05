@@ -242,87 +242,58 @@ class SearchModel:
         self.save(pathlib.Path(output_dir) / time.strftime("%Y-%m-%d-%H-%M-%S"))
 
 
+@dataclass
 class SearchModelGenerator:
-    def __init__(
-        self,
-        input_channels: int,
-        output_channels: int,
-        layer_count: ParameterRange,
-        layer_sizes: ParameterRange,
-        activations: ParameterRange,
-        output_activation: ParameterRange,
-        physics_weight: ParameterRange,
-        epochs=ParameterRange([20]),
-        learning_rate=ParameterRange([3e-4]),
-        batch_size=ParameterRange([2**12]),
-        ReduceLROnPlateau_patience=ParameterRange([5]),
-        ReduceLROnPlateau_factor=ParameterRange([0.5]),
-        EarlyStopping_patience=ParameterRange([6]),
-        pre_normalized=False,
-        reject=lambda search_model: False,
-        patience=100,
-    ):
-        self.input_dim = input_channels
-        self.output_dim = output_channels
-        self.epochs_range = epochs
-        self.batch_size_range = batch_size
-        self.learning_rate_range = learning_rate
-        self.layer_sizes_range = layer_sizes
-        self.layer_count_range = layer_count
-        self.activations_range = activations
-        self.output_activation_range = output_activation
-        self.physics_weight_range = physics_weight
-        self.ReduceLROnPlateau_patience_range = ReduceLROnPlateau_patience
-        self.ReduceLROnPlateau_factor_range = ReduceLROnPlateau_factor
-        self.EarlyStopping_patience_range = EarlyStopping_patience
-        self.reject = reject
-        self.pre_normalized = pre_normalized
-        self.patience = patience
+    input_channels: int
+    output_channels: int
+    layer_count: ParameterRange
+    layer_sizes: ParameterRange
+    activations: ParameterRange
+    output_activation: ParameterRange
+    physics_weight: ParameterRange
+    epochs: ParameterRange = ParameterRange([20])
+    learning_rate: ParameterRange = ParameterRange([3e-4])
+    batch_size: ParameterRange = ParameterRange([2**12])
+    ReduceLROnPlateau_patience: ParameterRange = ParameterRange([5])
+    ReduceLROnPlateau_factor: ParameterRange = ParameterRange([0.5])
+    EarlyStopping_patience: ParameterRange = ParameterRange([6])
+    # these are parameters of the generator, not the model
+    pre_normalized: bool = False
+    reject: Callable = lambda search_model: False
+    patience: int = 100
 
     def info(self):
-        return dict(
-            input_dim=self.input_dim,
-            output_dim=self.output_dim,
-            epochs_range=self.epochs_range.info(),
-            batch_size_range=self.batch_size_range.info(),
-            learning_rate_range=self.learning_rate_range.info(),
-            layer_sizes_range=self.layer_sizes_range.info(),
-            layer_count_range=self.layer_count_range.info(),
-            activations_range=self.activations_range.info(),
-            output_activation_range=self.output_activation_range.info(),
-            physics_weight_range=self.physics_weight_range.info(),
-            ReduceLROnPlateau_patience_range=self.ReduceLROnPlateau_patience_range.info(),
-            ReduceLROnPlateau_factor_range=self.ReduceLROnPlateau_factor_range.info(),
-            EarlyStopping_patience_range=self.EarlyStopping_patience_range.info(),
-            pre_normalized=self.pre_normalized,
-        )
+        return asdict(self)
 
     def random_model(self):
         for _ in range(self.patience):
-            layer_count = self.layer_count_range.random()
-            learning_rate = self.learning_rate_range.random()
-            physics_weight = self.physics_weight_range.random()
+            hyperparameters = self.__dict__.copy()
+            del hyperparameters["reject"]
+            del hyperparameters["patience"]
+            del hyperparameters["pre_normalized"]
+
+            for key, value in hyperparameters.items():
+                if isinstance(value, ParameterRange):
+                    hyperparameters[key] = value.random()
+
             if self.pre_normalized:
-                loss_function = keras.losses.MeanAbsoluteError()
-                physics_weight = 0
+                hyperparameters["loss_function"] = keras.losses.MeanAbsoluteError()
+                hyperparameters["physics_weight"] = 0
             else:
-                loss_function = PhysicsLoss(physics_weight)
-            model = SearchModel(
-                input_channels=self.input_dim,
-                output_channels=self.output_dim,
-                epochs=self.epochs_range.random(),
-                batch_size=self.batch_size_range.random(),
-                learning_rate=learning_rate,
-                layer_sizes=self.layer_sizes_range.random(layer_count),
-                activations=self.activations_range.random(layer_count),
-                output_activation=self.output_activation_range.random(),
-                physics_weight=physics_weight,
-                ReduceLROnPlateau_patience=self.ReduceLROnPlateau_patience_range.random(),
-                ReduceLROnPlateau_factor=self.ReduceLROnPlateau_factor_range.random(),
-                EarlyStopping_patience=self.EarlyStopping_patience_range.random(),
-                optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
-                loss_function=loss_function,
+                hyperparameters["loss_function"] = PhysicsLoss(
+                    hyperparameters["physics_weight"]
+                )
+            hyperparameters["optimizer"] = keras.optimizers.Adam(
+                learning_rate=hyperparameters["learning_rate"]
             )
+            hyperparameters["layer_sizes"] = self.layer_sizes.random(
+                hyperparameters["layer_count"]
+            )
+            hyperparameters["activations"] = self.activations.random(
+                hyperparameters["layer_count"]
+            )
+
+            model = SearchModel(**hyperparameters)
 
             if not self.reject(model):
                 return model
