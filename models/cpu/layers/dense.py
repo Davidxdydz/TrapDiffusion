@@ -1,11 +1,10 @@
-import os
-
-os.environ["KERAS_BACKEND"] = "torch"
 import keras
 import numpy as np
+from models.cpu.layers.layer import CPULayer
+from keras.layers import Dense
 
 
-class CPUDense:
+class CPUDense(CPULayer):
     @staticmethod
     def from_keras(layer: keras.layers.Dense):
         weights = layer.get_weights()[0]
@@ -33,3 +32,6 @@ class CPUDense:
         else:
             raise NotImplementedError(f"Activation {self.activation} not implemented")
         return x
+
+
+CPULayer.cpu_translation[Dense] = CPUDense

@@ -2,21 +2,14 @@ import os
 
 os.environ["KERAS_BACKEND"] = "torch"
 import keras
-import numpy as np
-from models.pinn import Normalizer
-from models.cpu.layers import CPUDense, CPUNormalizer
+from models.cpu.layers.layer import CPULayer
 
 
 class CPUSequential:
     def get_from(self, pinn: keras.Sequential):
         layers = []
         for layer in pinn.layers:
-            if isinstance(layer, keras.layers.Dense):
-                layers.append(CPUDense.from_keras(layer))
-            elif isinstance(layer, Normalizer):
-                layers.append(CPUNormalizer())
-            else:
-                raise NotImplementedError(f"Layer {layer} not implemented")
+            layers.append(CPULayer.from_keras(layer))
         self.layers = layers
 
     def __init__(self, model: keras.Sequential):

@@ -1,21 +1,17 @@
-import os
-
-os.environ["KERAS_BACKEND"] = "torch"
 import keras
-
-from models.cpu.layers import CPUDense, CPUNormalizer
-from keras.layers import Dense
-from models.pinn import Normalizer
-
-cpu_translation = {Dense: CPUDense, Normalizer: CPUNormalizer}
+from typing import Dict
 
 
 class CPULayer:
-    def __new__(cls, layer: keras.layers.Layer):
-        if type(layer) in cpu_translation:
-            return cpu_translation[type(layer)](layer)
+    cpu_translation: Dict[keras.layers.Layer, "CPULayer"] = {}
+
+    @staticmethod
+    def from_keras(layer: keras.layers.Layer) -> "CPULayer":
+        if type(layer) in CPULayer.cpu_translation:
+            return CPULayer.cpu_translation[type(layer)].from_keras(layer)
         else:
-            raise NotImplementedError(f"Layer {layer} not implemented")
+            print(CPULayer.cpu_translation)
+            raise NotImplementedError(f"Layer {type(layer)} not implemented")
 
     def __call__(self, inputs):
         raise NotImplementedError()

@@ -1,1 +1,1 @@
-from models.cpu.cpu import CPUSequential
+from models.cpu.sequential import CPUSequential
