@@ -93,42 +93,42 @@ presets = {
         "pre_normalized": True,
     },
 }
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--preset", type=str, choices=presets.keys())
+    # suppress default
+    parser.add_argument("--dataset_name", type=str, default=argparse.SUPPRESS)
+    parser.add_argument(
+        "--model", type=str, choices=models.keys(), default=argparse.SUPPRESS
+    )
+    parser.add_argument("--configs", type=int, default=argparse.SUPPRESS)
+    parser.add_argument("--initial_per_config", type=int, default=argparse.SUPPRESS)
+    parser.add_argument("--n_timesteps", type=int, default=argparse.SUPPRESS)
+    parser.add_argument("--include_params", type=bool, default=argparse.SUPPRESS)
+    parser.add_argument("--seed", type=int, default=argparse.SUPPRESS)
+    parser.add_argument("--dir", type=str, default=argparse.SUPPRESS)
+    parser.add_argument("--quiet", "-q", action=argparse.BooleanOptionalAction)
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--preset", type=str, choices=presets.keys())
-# suppress default
-parser.add_argument("--dataset_name", type=str, default=argparse.SUPPRESS)
-parser.add_argument(
-    "--model", type=str, choices=models.keys(), default=argparse.SUPPRESS
-)
-parser.add_argument("--configs", type=int, default=argparse.SUPPRESS)
-parser.add_argument("--initial_per_config", type=int, default=argparse.SUPPRESS)
-parser.add_argument("--n_timesteps", type=int, default=argparse.SUPPRESS)
-parser.add_argument("--include_params", type=bool, default=argparse.SUPPRESS)
-parser.add_argument("--seed", type=int, default=argparse.SUPPRESS)
-parser.add_argument("--dir", type=str, default=argparse.SUPPRESS)
-parser.add_argument("--quiet", "-q", action=argparse.BooleanOptionalAction)
+    args = parser.parse_args()
 
-args = parser.parse_args()
+    arg_dict = {}
+    if args.preset is not None:
+        arg_dict.update(presets[args.preset])
+    arg_dict.update(vars(args))
 
-arg_dict = {}
-if args.preset is not None:
-    arg_dict.update(presets[args.preset])
-arg_dict.update(vars(args))
+    if "dataset_name" not in arg_dict:
+        raise ValueError("dataset_name must be specified if no preset is used")
 
-if "dataset_name" not in arg_dict:
-    raise ValueError("dataset_name must be specified if no preset is used")
+    if "preset" in arg_dict:
+        # don't pass preset to create_dataset
+        del arg_dict["preset"]
 
-if "preset" in arg_dict:
-    # don't pass preset to create_dataset
-    del arg_dict["preset"]
+    arg_dict["verbose"] = not arg_dict["quiet"]
+    del arg_dict["quiet"]
 
-arg_dict["verbose"] = not arg_dict["quiet"]
-del arg_dict["quiet"]
+    if "model" in arg_dict:
+        arg_dict["model"] = models[arg_dict["model"]]
+    else:
+        raise ValueError("model must be specified")
 
-if "model" in arg_dict:
-    arg_dict["model"] = models[arg_dict["model"]]
-else:
-    raise ValueError("model must be specified")
-
-create_dataset(**arg_dict)
+    create_dataset(**arg_dict)
