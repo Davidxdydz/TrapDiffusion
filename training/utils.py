@@ -54,6 +54,10 @@ class ParameterRange:
             dtype=str(self.dtype),
         )
 
+    def log_normalize(self, value):
+        low, high = self.choices
+        return (np.log(value) - np.log(low)) / (np.log(high) - np.log(low))
+
     def random(self, k=None):
         if self.discrete:
             if k == None:
