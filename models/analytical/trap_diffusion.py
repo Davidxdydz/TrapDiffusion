@@ -15,11 +15,12 @@ def hadamard(A, B):
 
 
 class TrapDiffusion:
-    def __init__(self, name, use_jacobian=False, t_final=2):
+    def __init__(self, name, use_jacobian=False, t_final=2, fixed=False):
         self.t_final = t_final
         self.sol = None
         self.name = name
         self.use_jacobian = use_jacobian
+        self.fixed = fixed
 
     def rhs(self, t, y):
         raise NotImplementedError("Subclass must implement abstract method")

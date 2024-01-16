@@ -6,6 +6,7 @@ from typing import Union, Dict
 from models.analytical import TrapDiffusion
 import time
 from datetime import timedelta
+import random
 
 
 def load_dataset_info(dataset_name, dataset_dir):
@@ -55,12 +56,15 @@ def create_dataset(
     print(f"Estimated samples: {total_samples}")
     print(f"Estimated size: {total_samples*bytes_per_sample/1024**2} MB")
 
+    is_fixed = seed == "fixed"
     if seed is None:
         seed = np.random.randint(0, 2**31 - 1)
-    np.random.seed(seed)
+    if not is_fixed:
+        np.random.seed(seed)
+        random.seed(seed)
     x, y, c = [], [], []
     for _ in tqdm(range(configs), desc="configs", disable=configs == 1 or not verbose):
-        analytical_model = model()
+        analytical_model = model(fixed=is_fixed)
         for _ in tqdm(
             range(initial_per_config),
             desc="initial_values",

@@ -1,37 +1,68 @@
 import numpy as np
 from models.analytical.trap_diffusion import TrapDiffusion, hadamard
+from training.utils import ParameterRange
+
 
 class MultiOccupationMultiIsotope(TrapDiffusion):
-    def __init__(self):
-        TrapDiffusion.__init__(self, "Multi-Occupation, Multi-Isotope Model", True, 0.2)
-        self.cS = 1
-        T_to_S = np.array(
-            [
-                3022.8272984145406,  # T10
-                3022.8272984145406,  # T01
-                347725598.62135780,  # T20
-                173862799.31067890,  # T11
-                347725598.62135780,  # T02
-                20133797667.950905,  # T30
-                13422531778.633938,  # T21
-                6711265889.3169689,  # T12
-                20133797667.95090,  # T03
-            ]
+    T_to_S_ranges = [
+        ParameterRange(1e3, 1e4),  # T10
+        ParameterRange(1e3, 1e4),  # T01
+        ParameterRange(100e6, 100e7),  # T20
+        ParameterRange(100e6, 100e7),  # T11
+        ParameterRange(100e6, 100e7),  # T02
+        ParameterRange(10e9, 10e10),  # T30
+        ParameterRange(10e9, 10e10),  # T21
+        ParameterRange(1e9, 1e10),  # T12
+        ParameterRange(10e9, 10e10),  # T03
+    ]
+    e_range = ParameterRange(100e6, 100e7)
+    d_range = ParameterRange(100e6, 100e7)
+
+    def set_params(self, random=False):
+        if not random:
+            self.T_to_S = np.array(
+                [
+                    3022.8272984145406,  # T10
+                    3022.8272984145406,  # T01
+                    347725598.62135780,  # T20
+                    173862799.31067890,  # T11
+                    347725598.62135780,  # T02
+                    20133797667.950905,  # T30
+                    13422531778.633938,  # T21
+                    6711265889.3169689,  # T12
+                    20133797667.950905,  # T03
+                ]
+            )
+            self.e = 536918980.06994247
+            self.d = 379659051.75522107
+        else:
+            # total: 1e3 - 1e11
+            # norm: (log10(x) - 3)/ 8
+
+            self.T_to_S = np.array(
+                [r.random() for r in MultiOccupationMultiIsotope.T_to_S_ranges]
+            )
+            self.e = MultiOccupationMultiIsotope.e_range.random()
+            self.d = MultiOccupationMultiIsotope.d_range.random()
+
+    def __init__(self, fixed=False):
+        TrapDiffusion.__init__(
+            self, "Multi-Occupation, Multi-Isotope Model", True, 0.2, fixed=fixed
         )
-        e = 536918980.06994247
-        d = 379659051.75522107
+        self.cS = 1
+        self.set_params(random=not fixed)
         g = 1
 
         TS = {
-            "10": T_to_S[0],
-            "01": T_to_S[1],
-            "20": T_to_S[2],
-            "11": T_to_S[3],
-            "02": T_to_S[4],
-            "30": T_to_S[5],
-            "21": T_to_S[6],
-            "12": T_to_S[7],
-            "03": T_to_S[8],
+            "10": self.T_to_S[0],
+            "01": self.T_to_S[1],
+            "20": self.T_to_S[2],
+            "11": self.T_to_S[3],
+            "02": self.T_to_S[4],
+            "30": self.T_to_S[5],
+            "21": self.T_to_S[6],
+            "12": self.T_to_S[7],
+            "03": self.T_to_S[8],
         }
 
         E = np.identity(12)
@@ -94,14 +125,14 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
         H[0, 9, 6] = 1
         H[0, 10, 7] = 1
 
-        H[0, 8, 9] = e
-        H[0, 9, 9] = -e
-        H[0, 10, 10] = -e
-        H[0, 11, 11] = -e
+        H[0, 8, 9] = self.e
+        H[0, 9, 9] = -self.e
+        H[0, 10, 10] = -self.e
+        H[0, 11, 11] = -self.e
 
-        H[0, 8, 9] = e
-        H[0, 9, 10] = e
-        H[0, 10, 11] = e
+        H[0, 8, 9] = self.e
+        H[0, 9, 10] = self.e
+        H[0, 10, 11] = self.e
 
         H[1, 2, 2] = -1
         H[1, 3, 3] = -1
@@ -117,13 +148,13 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
         H[1, 10, 6] = 1
         H[1, 11, 7] = 1
 
-        H[1, 8, 8] = -d
-        H[1, 9, 9] = -d
-        H[1, 10, 10] = -d
+        H[1, 8, 8] = -self.d
+        H[1, 9, 9] = -self.d
+        H[1, 10, 10] = -self.d
 
-        H[1, 9, 8] = d
-        H[1, 10, 9] = d
-        H[1, 11, 10] = d
+        H[1, 9, 8] = self.d
+        H[1, 10, 9] = self.d
+        H[1, 11, 10] = self.d
 
         M = np.zeros((2, 12, 12))
         M[0, 2:, 0] = g
@@ -154,6 +185,22 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
 
     def correction_factors(self):
         return np.array([1, 1, 0, 1, 1, 2, 2, 2, 3, 3, 3, 3])
+
+    def get_relevant_params(self):
+        relevant_entries = []
+
+        for param, param_range in zip(
+            self.T_to_S, MultiOccupationMultiIsotope.T_to_S_ranges
+        ):
+            relevant_entries.append(param_range.log_normalize(param))
+
+        relevant_entries.append(
+            MultiOccupationMultiIsotope.e_range.log_normalize(self.e)
+        )
+        relevant_entries.append(
+            MultiOccupationMultiIsotope.d_range.log_normalize(self.d)
+        )
+        return np.array(relevant_entries)
 
     def initial_values(self):
         """

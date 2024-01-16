@@ -1,12 +1,16 @@
 import numpy as np
 from models.analytical.trap_diffusion import TrapDiffusion, hadamard
 import matplotlib.pyplot as plt
+from training.utils import ParameterRange
+
 
 class SingleOccupationSingleIsotope(TrapDiffusion):
-    def __init__(self, n_traps=2, t_final=2):
+    def __init__(self, n_traps=2, t_final=2, fixed=False):
         TrapDiffusion.__init__(
-            self, "Single-Occupation, Single-Isotope Model", False, t_final
+            self, "Single-Occupation, Single-Isotope Model", False, t_final, fixed=fixed
         )
+        if fixed:
+            np.random.seed(1)
         self.n_traps = n_traps
         # concentraion of trap sites and solute sites.
         # c_S_T = [c_S, c_T_1, c_T_2, ...]
@@ -114,9 +118,9 @@ class SingleOccupationSingleIsotope(TrapDiffusion):
 
     def inputs_transform(self, inputs):
         # normalize time to be from 0 to 1
-        inputs[:,0] =inputs[:,0]/ self.t_final
+        inputs[:, 0] = inputs[:, 0] / self.t_final
         return inputs
 
     def inputs_reverse_transform(self, inputs):
-        inputs[:,0] = inputs[:,0]* self.t_final
+        inputs[:, 0] = inputs[:, 0] * self.t_final
         return inputs
