@@ -10,3 +10,4 @@ venv
 jobs
 logs
 *.old
+create_datasets.sh
