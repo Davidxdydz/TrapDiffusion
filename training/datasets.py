@@ -20,19 +20,16 @@ def load_dataset_info(dataset_name, dataset_dir):
     return info
 
 
-def create_dataset(
+def estimate_dataset_size(
     model: type[TrapDiffusion],
-    dataset_name,
-    dir="datasets",
-    configs=1000,
-    initial_per_config=100,
-    n_timesteps=50,
-    include_params=False,
-    info: Union[Dict, None] = None,
-    seed=None,
-    verbose=True,
-    pre_normalized=False,
+    include_params: bool,
+    configs: int,
+    initial_per_config: int,
+    n_timesteps: int | None = None,
 ):
+    """
+    Estimate the size of the datase: number of samples, size in MB.
+    """
     analytical_model = model()
     n_init = len(analytical_model.initial_values())
     n_params = 0
@@ -49,12 +46,35 @@ def create_dataset(
     if n_timesteps is not None:
         total_samples = configs * initial_per_config * n_timesteps
     else:
-        x, y = analytical_model.training_data(include_params=include_params)
+        x, _ = analytical_model.training_data(include_params=include_params)
         total_samples = configs * initial_per_config * len(x)
+    return total_samples, total_samples * bytes_per_sample
+
+
+def create_dataset(
+    model: type[TrapDiffusion],
+    dataset_name,
+    dir="datasets",
+    configs=1000,
+    initial_per_config=100,
+    n_timesteps=50,
+    include_params=False,
+    info: Union[Dict, None] = None,
+    seed=None,
+    verbose=True,
+    pre_normalized=False,
+):
+    total_samples, total_size = estimate_dataset_size(
+        model,
+        include_params,
+        configs,
+        initial_per_config,
+        n_timesteps,
+    )
     start = time.perf_counter()
     print(f"Creating {dataset_name}")
     print(f"Estimated samples: {total_samples}")
-    print(f"Estimated size: {total_samples*bytes_per_sample/1024**2} MB")
+    print(f"Estimated size: {total_size/1024**2} MB")
 
     is_fixed = seed == "fixed"
     if seed is None:
