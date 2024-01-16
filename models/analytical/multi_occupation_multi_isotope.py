@@ -1,22 +1,22 @@
 import numpy as np
 from models.analytical.trap_diffusion import TrapDiffusion, hadamard
-from training.utils import ParameterRange
+from training.parameter_range import ParameterRange
 
 
 class MultiOccupationMultiIsotope(TrapDiffusion):
     T_to_S_ranges = [
-        ParameterRange(1e3, 1e4),  # T10
-        ParameterRange(1e3, 1e4),  # T01
-        ParameterRange(100e6, 100e7),  # T20
-        ParameterRange(100e6, 100e7),  # T11
-        ParameterRange(100e6, 100e7),  # T02
-        ParameterRange(10e9, 10e10),  # T30
-        ParameterRange(10e9, 10e10),  # T21
-        ParameterRange(1e9, 1e10),  # T12
-        ParameterRange(10e9, 10e10),  # T03
+        ParameterRange([1e3, 1e4]),  # T10
+        ParameterRange([1e3, 1e4]),  # T01
+        ParameterRange([100e6, 100e7]),  # T20
+        ParameterRange([100e6, 100e7]),  # T11
+        ParameterRange([100e6, 100e7]),  # T02
+        ParameterRange([10e9, 10e10]),  # T30
+        ParameterRange([10e9, 10e10]),  # T21
+        ParameterRange([1e9, 1e10]),  # T12
+        ParameterRange([10e9, 10e10]),  # T03
     ]
-    e_range = ParameterRange(100e6, 100e7)
-    d_range = ParameterRange(100e6, 100e7)
+    e_range = ParameterRange([100e6, 100e7])
+    d_range = ParameterRange([100e6, 100e7])
 
     def set_params(self, random=False):
         if not random:

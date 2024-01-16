@@ -1,7 +1,7 @@
 import numpy as np
 from models.analytical.trap_diffusion import TrapDiffusion, hadamard
 import matplotlib.pyplot as plt
-from training.utils import ParameterRange
+from training.parameter_range import ParameterRange
 
 
 class SingleOccupationSingleIsotope(TrapDiffusion):
