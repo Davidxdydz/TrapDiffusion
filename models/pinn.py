@@ -5,8 +5,13 @@ import keras
 
 
 class Normalizer(keras.layers.Layer):
+    def __init__(self, norm_loss_weight=0, **kwargs):
+        super(Normalizer, self).__init__(**kwargs)
+        self.norm_loss_weight = norm_loss_weight
+
     def call(self, inputs):
         sums = keras.ops.sum(inputs, axis=1, keepdims=True)
+        self.add_loss(keras.ops.abs(1 - sums) * self.norm_loss_weight)
         return inputs / sums
 
 
