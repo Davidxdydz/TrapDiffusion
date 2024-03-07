@@ -4,7 +4,7 @@ def test_cpu_vs_gpu_random():
     from models.cpu import CPUSequential
     from models.cpu.layers import CPULayer
     import os
-    from models.pinn import Normalizer
+    from models.gpu.layers import Normalizer
 
     os.environ["KERAS_BACKEND"] = "torch"
     import keras

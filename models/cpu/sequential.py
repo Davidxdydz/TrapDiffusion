@@ -18,7 +18,7 @@ class CPUSequential:
         self.output_shape = model.output_shape
         self.name = model.name
 
-    def predict(self, x):
+    def predict(self, x, *args, **kwargs):
         for layer in self.layers:
             x = layer(x)
         return x

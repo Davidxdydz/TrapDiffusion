@@ -28,5 +28,5 @@ export PYTHONUNBUFFERED=1
 export KERAS_BACKEND="torch"
 
 source venv/bin/activate
-python run_random_search.py --quiet --n 500 --dataset_name "Single-Occupation, Single Isotope, fixed matrix"
+python run_search.py --quiet --n 500 --method hyperband --dataset_name "Single-Occupation, Single Isotope, fixed matrix"
 deactivate

@@ -1,6 +1,6 @@
 import numpy as np
 from models.cpu.layers.layer import CPULayer
-from models.pinn import Normalizer
+from models.gpu.layers import Normalizer
 
 
 class CPUNormalizer(CPULayer):

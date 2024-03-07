@@ -121,8 +121,8 @@ def create_dataset(
     info["initial_per_params"] = initial_per_config
     info["n_timesteps"] = n_timesteps
     info["include_params"] = include_params
-    info["input_channels"] = input_channels
-    info["output_channels"] = output_channels
+    info["input_channels"] = x.shape[-1]
+    info["output_channels"] = y.shape[-1]
     info["x"] = "t, c_s, c_t_1, c_t_2" + (", relevant_params" if include_params else "")
     info["y"] = (
         "solute and trap concentration at time t"
@@ -137,7 +137,7 @@ def create_dataset(
     print(f"Created {dataset_name} in {timedelta(seconds = end- start)}")
 
 
-def load_dataset(name, dir="datasets"):
+def load_dataset(name, dir="datasets", split=0.95):
     dir = Path(dir)
     dataset_dir = dir.joinpath(name)
     with open(dataset_dir.joinpath("info.yaml"), "r") as f:
@@ -145,16 +145,17 @@ def load_dataset(name, dir="datasets"):
     x: np.ndarray = np.load(dataset_dir / info["inputs_path"])
     y: np.ndarray = np.load(dataset_dir / info["targets_path"])
     c: np.ndarray = np.load(dataset_dir / info["corrections_path"])
-    x_train = x
-    x_val = x
-    y_train = None
-    y_val = None
+    train_samples = int(len(x) * split)
     pre_normalized = info.get("pre_normalized", False)
     if not pre_normalized:
         # append the correction factors to the labels, to be used in the loss function
-        y_train = np.append(y, c, axis=1)
-        y_val = y
-    else:
-        y_train = y
-        y_val = y
-    return info, (x_train, y_train), (x_val, y_val)
+        y = np.append(y, c, axis=1)
+    x_train = x[:train_samples]
+    y_train = y[:train_samples]
+    x_val = x[train_samples:]
+    y_val = y[train_samples:]
+    return (
+        info,
+        (x_train, y_train),
+        (x_val, y_val),
+    )
