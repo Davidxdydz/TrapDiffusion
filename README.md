@@ -84,6 +84,8 @@ The third band at a loss of $10^{-2}$ seems to be equally difficult, but not as 
 
 #### Approach 1:
 
+> TODO prohibit negative outputs before normalization
+
 Force the network to learn the mass conservation by adding a penalty term to the loss function. This is now called "physics loss". The total loss now consists of the mean squared error (MSE) and the physics loss:
 
 $$
