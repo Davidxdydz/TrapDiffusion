@@ -28,5 +28,5 @@ export PYTHONUNBUFFERED=1
 export KERAS_BACKEND="torch"
 
 source venv/bin/activate
-python run_search.py --quiet --n 100 --method hyperband --dataset_name "Multi-Occupation, Multi Isotope, fixed matrix, normalized"
+python run_search.py --quiet --n 10 --method hyperband -o "MOMI_fixed_normalized_hyperband" --dataset_name "Multi-Occupation, Multi Isotope, fixed matrix, normalized"
 deactivate
