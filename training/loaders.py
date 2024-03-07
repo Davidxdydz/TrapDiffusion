@@ -24,6 +24,11 @@ def create_tuner(
         "bayesian": kt.tuners.BayesianOptimization,
         "hyperband": kt.tuners.Hyperband,
     }
+    specifice_args = {
+        "random": {"max_trials": n},
+        "bayesian": {"max_trials": n},
+        "hyperband": {"max_epochs": 30, "hyperband_iterations": n},
+    }
     info = load_dataset_info(dataset_name, dataset_dir)
     tuner = tuner_classes[method](
         hypermodel=HyperModel(
@@ -35,10 +40,10 @@ def create_tuner(
             dataset_dir=dataset_dir,
         ),
         objective=kt.Objective("val_max_ae", "min"),
-        max_trials=n,
         overwrite=clear,
         directory=output_dir,
         project_name=output_name,
+        **specifice_args[method],
     )
     return tuner
 
