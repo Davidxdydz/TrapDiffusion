@@ -7,7 +7,7 @@ if __name__ == "__main__":
     all_presets = list(presets.keys())
     parser = ArgumentParser()
     parser.add_argument("--output", "-o", type=str, default="create_datasets.sh")
-    parser.add_argument("--safety", type=int, default=1024**3)  # 1 GB
+    parser.add_argument("--safety", type=int, default=3*1024**3)  # 3 GB
     parser.add_argument("--template", default="templates/create_datasets.sh")
     parser.add_argument("--exclude", nargs="*", choices=all_presets + [[]])
     parser.add_argument("presets", nargs="*", choices=all_presets + [[]])
