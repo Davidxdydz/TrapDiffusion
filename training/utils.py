@@ -2,8 +2,9 @@ import numpy as np
 from models.cpu import CPUSequential
 import time
 import keras
-from training.datasets import load_dataset
-
+from pathlib import Path
+from torch.utils.tensorboard import SummaryWriter
+import datetime
 
 def estimate_model_time(model, batch=1000, average=10):
     """
@@ -39,3 +40,30 @@ def calculate_metrics(
     metrics.update(hp.values)
     # TODO maybe output path
     return metrics
+
+
+class CustomTensorboard(keras.callbacks.Callback):
+    def __init__(self, log_dir="logs", name = None):
+        self.log_dir = Path(log_dir)
+        if name is None:
+            self.name = f"{datetime.datetime.now():%y-%m-%d %H-%M-%S}"
+        else:
+            self.name = name
+        self.sw = SummaryWriter(self.log_dir / self.name)
+
+    def on_epoch_end(self, epoch, logs=None):
+        for metric, value in logs.items():
+            self.sw.add_scalar(metric, value, epoch)
+
+def manual_scheduler(epoch, lr):
+    if epoch == 0:
+        with open("lr.txt", "w") as f:
+            f.write(f"{lr:.2e}")
+        return lr
+    else:
+        with open("lr.txt") as f:
+            try:
+                lr = float(f.read())
+            except:
+                pass
+        return lr
