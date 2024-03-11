@@ -6,6 +6,7 @@ from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
 import datetime
 
+
 def estimate_model_time(model, batch=1000, average=10):
     """
     Inference time in seconds per sample
@@ -43,7 +44,7 @@ def calculate_metrics(
 
 
 class CustomTensorboard(keras.callbacks.Callback):
-    def __init__(self, log_dir="logs", name = None):
+    def __init__(self, log_dir="logs", name=None):
         self.log_dir = Path(log_dir)
         if name is None:
             self.name = f"{datetime.datetime.now():%y-%m-%d %H-%M-%S}"
@@ -54,6 +55,8 @@ class CustomTensorboard(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         for metric, value in logs.items():
             self.sw.add_scalar(metric, value, epoch)
+        self.sw.add_scalar("learning_rate", self.model.optimizer.learning_rate, epoch)
+
 
 def manual_scheduler(epoch, lr):
     if epoch == 0:
