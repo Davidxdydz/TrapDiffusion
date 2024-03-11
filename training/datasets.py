@@ -20,34 +20,42 @@ def load_dataset_info(dataset_name, dataset_dir):
     return info
 
 
+def dataset_channels(
+    model: type[TrapDiffusion],
+    include_params: bool,
+    configs: int,
+    initial_per_config: int,
+    n_timesteps: int,
+):
+    samples = configs * initial_per_config * n_timesteps
+    n_params = 0
+    analytical_model = model()
+    n_init = len(analytical_model.initial_values())
+    if include_params:
+        n_params = len(analytical_model.get_relevant_params())
+    input_channels = 1 + n_init + n_params
+    output_channels = n_init
+    correction_channels = n_init
+    return samples, input_channels, output_channels, correction_channels
+
+
 def estimate_dataset_size(
     model: type[TrapDiffusion],
     include_params: bool,
     configs: int,
     initial_per_config: int,
-    n_timesteps: int | None = None,
+    n_timesteps: int,
 ):
     """
     Estimate the size of the datase: number of samples, size in MB.
     """
-    analytical_model = model()
-    n_init = len(analytical_model.initial_values())
-    n_params = 0
-    if include_params:
-        n_params = len(analytical_model.get_relevant_params())
-    # t, c_s, c_t_1, c_t_2, <optional> relevant_params
-    input_channels = 1 + n_init + n_params
-    output_channels = n_init
+    samples, input_channels, output_channels, correction_channels = dataset_channels(
+        model, include_params, configs, initial_per_config, n_timesteps
+    )
 
-    # double precision is 8 bytes
-    # output_channels * 2 because correction factors are also stored
-    bytes_per_sample = (input_channels + output_channels * 2) * 8
-
-    if n_timesteps is not None:
-        total_samples = configs * initial_per_config * n_timesteps
-    else:
-        x, _ = analytical_model.training_data(include_params=include_params)
-        total_samples = configs * initial_per_config * len(x)
+    # float32 precision is 4
+    bytes_per_sample = (input_channels + output_channels + correction_channels) * 4
+    total_samples = configs * initial_per_config * n_timesteps
     return total_samples, total_samples * bytes_per_sample
 
 
@@ -63,6 +71,7 @@ def create_dataset(
     seed=None,
     verbose=True,
     pre_normalized=False,
+    log_t_eval=False,
 ):
     total_samples, total_size = estimate_dataset_size(
         model,
@@ -82,7 +91,14 @@ def create_dataset(
     if not is_fixed:
         np.random.seed(seed)
         random.seed(seed)
-    x, y, c = [], [], []
+
+    samples, input_channels, output_channels, correction_channels = dataset_channels(
+        model, include_params, configs, initial_per_config, n_timesteps
+    )
+    x = np.empty((samples, input_channels), dtype=np.float32)
+    y = np.empty((samples, output_channels), dtype=np.float32)
+    c = np.empty((samples, correction_channels), dtype=np.float32)
+    current_index = 0
     for _ in tqdm(range(configs), desc="configs", disable=configs == 1 or not verbose):
         analytical_model = model(fixed=is_fixed)
         for _ in tqdm(
@@ -91,15 +107,15 @@ def create_dataset(
             disable=configs > 1 or not verbose,
         ):
             x_, y_ = analytical_model.training_data(
-                n_eval=n_timesteps, include_params=include_params
+                n_eval=n_timesteps, include_params=include_params, log_t_eval=log_t_eval
             )
+            n = len(x_)
             c_ = analytical_model.correction_factors()
-            c_ = np.tile(c_, (len(x_), 1))
-            x.extend(x_)
-            y.extend(y_)
-            c.extend(c_)
+            x[current_index : current_index + n] = x_
+            y[current_index : current_index + n] = y_
+            c[current_index : current_index + n] = c_
+            current_index += n
 
-    x, y, c = np.array(x), np.array(y), np.array(c)
     if pre_normalized:
         y *= c
     dir = Path(dir)

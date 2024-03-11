@@ -34,7 +34,7 @@ class TrapDiffusion:
         """
         raise NotImplementedError("Subclass must implement abstract method")
 
-    def training_data(self, include_params=False, n_eval=None, initial_values=None):
+    def training_data(self, include_params=False, n_eval=None, initial_values=None, log_t_eval = False):
         """
         Generate training data from existing parameters but with random initial conditions.
         The format will be two arrays of
@@ -43,7 +43,7 @@ class TrapDiffusion:
         """
         if initial_values is None:
             initial_values = self.initial_values()
-        t, solutions = self.solve(initial_values, n_eval)
+        t, solutions = self.solve(initial_values, n_eval, log_t_eval)
         tiled_initial_values = np.tile(initial_values, (len(t), 1))
         if include_params:
             relevant_params = self.get_relevant_params()
@@ -68,10 +68,13 @@ class TrapDiffusion:
     def targets_reverse_transform(self, targets):
         return targets
 
-    def solve(self, y0, n_eval=None):
+    def solve(self, y0, n_eval, log_t_eval = False):
         t_eval = None
-        if n_eval is not None:
+        if log_t_eval:
+            t_eval = np.geomspace(1e-13,self.t_final,n_eval)
+        else:
             t_eval = np.linspace(0, self.t_final, n_eval)
+
 
         if self.use_jacobian:
             sol = solve_ivp(
@@ -80,7 +83,7 @@ class TrapDiffusion:
                 t_span=(0, self.t_final),
                 t_eval=t_eval,
                 jac=self.jacobian,
-                method="BDF",
+                method="Radau",
             )
         else:
             sol = solve_ivp(
@@ -159,6 +162,8 @@ class TrapDiffusion:
         n_eval=None,
         legend=True,
         pre_normalized=False,
+        initial_values = None,
+        log_t_eval = False
     ):
         """
         Evaluate the model with the given prediction function.
@@ -166,6 +171,8 @@ class TrapDiffusion:
         inputs, targets = self.training_data(
             n_eval=n_eval,
             include_params=include_params,
+            initial_values = initial_values,
+            log_t_eval = log_t_eval
         )
         predictions = model.predict(inputs)
         predictions = self.targets_reverse_transform(predictions)
@@ -178,6 +185,7 @@ class TrapDiffusion:
         targets *= corrections
         delta = np.abs(targets - predictions)
         ts = inputs[:, 0]
+        plt.figure(figsize=(20,10))
         main_axis = plt.gca()
         error_axis = main_axis.twinx()
         for index, description in self.vector_description.items():
