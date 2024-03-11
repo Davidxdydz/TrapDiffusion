@@ -55,8 +55,7 @@ def estimate_dataset_size(
 
     # float32 precision is 4
     bytes_per_sample = (input_channels + output_channels + correction_channels) * 4
-    total_samples = configs * initial_per_config * n_timesteps
-    return total_samples, total_samples * bytes_per_sample
+    return samples, samples * bytes_per_sample
 
 
 def create_dataset(
