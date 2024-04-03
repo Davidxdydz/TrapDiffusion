@@ -127,7 +127,7 @@ def create_tuner(
     specifice_args = {
         "random": {"max_trials": n},
         "bayesian": {"max_trials": n},
-        "hyperband": {"max_epochs": 30, "hyperband_iterations": n},
+        "hyperband": {"max_epochs": 100, "hyperband_iterations": n},
     }
     info = load_dataset_info(dataset_name, dataset_dir)
     tuner = tuner_classes[method](
@@ -139,6 +139,7 @@ def create_tuner(
             dataset_name=dataset_name,
             dataset_dir=dataset_dir,
         ),
+        max_consecutive_failed_trials=10,  # this is also raised when model is to big
         objective=kt.Objective("val_max_ae", "min"),
         overwrite=clear,
         directory=output_dir,

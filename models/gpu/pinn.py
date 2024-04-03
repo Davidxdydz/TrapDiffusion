@@ -90,21 +90,19 @@ class HyperModel(kt.HyperModel):
         return model
 
     def build(self, hp: kt.HyperParameters):
-        tries = 0
-        while tries <= self.retries:
-            tries += 1
-            model = self.create_model(hp)
-            cpu_time = estimate_cpu_time(model)
-            if cpu_time < self.max_cpu_time:
-                return model
-            hp.values.clear()
-        raise ValueError("Could not find a model that meets the time constraint")
+        model = self.create_model(hp)
+        cpu_time = estimate_cpu_time(model)
+        if cpu_time < self.max_cpu_time:
+            return model
+        raise ValueError("Model takes to long to evaluate on CPU.")
 
     def fit(self, hp: kt.HyperParameters, model, *args, **kwargs):
+        kwargs.get("callbacks", []).append(
+            keras.callbacks.ReduceLROnPlateau(factor=0.5, min_lr=1e-4)
+        )
         return model.fit(
             *args,
-            #  epochs=hp.Int("epochs", 20, 40),
             shuffle=hp.Boolean("shuffle"),
-            batch_size=hp.Int("batch_size", 2**11, 2**14, sampling="log"),
+            batch_size=hp.Int("batch_size", 2**12, 2**14, sampling="log"),
             **kwargs,
         )
