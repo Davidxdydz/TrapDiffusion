@@ -12,3 +12,4 @@ logs
 *.old
 create_datasets.sh
 lr.txt
+*.keras
