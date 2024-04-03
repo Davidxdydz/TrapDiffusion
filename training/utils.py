@@ -55,7 +55,9 @@ class CustomTensorboard(keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         for metric, value in logs.items():
             self.sw.add_scalar(metric, value, epoch)
-        self.sw.add_scalar("learning_rate", self.model.optimizer.learning_rate, epoch)
+        self.sw.add_scalar(
+            "learning_rate", self.model.optimizer.get_config()["learning_rate"], epoch
+        )
 
 
 def manual_scheduler(epoch, lr):
