@@ -85,6 +85,8 @@ class TrapDiffusion:
                 t_span=(0, self.t_final),
                 t_eval=t_eval,
                 jac=self.jacobian,
+                # method="BDF",
+                # rtol=1e-3,
                 method="Radau",
             )
         else:
@@ -127,10 +129,10 @@ class TrapDiffusion:
         """
         raise NotImplementedError("Subclass must implement abstract method")
 
-    def plot(self, t=None, y=None):
+    def plot(self, t=None, y=None, n_eval=200, log_t_eval=False):
         if y is None or t is None:
             initial_values = self.initial_values()
-            t, y = self.solve(initial_values)
+            t, y = self.solve(initial_values, n_eval=n_eval, log_t_eval=log_t_eval)
 
         plt.figure()
         correction_factors = self.correction_factors()
