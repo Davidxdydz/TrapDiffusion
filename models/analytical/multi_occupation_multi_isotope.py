@@ -46,12 +46,26 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
         self.e = 536918980.06994247
         self.d = 379659051.75522107
 
-    def __init__(self, fixed=False):
+    def __init__(
+        self,
+        fixed=False,
+        normalized_rs=None,
+    ):
         TrapDiffusion.__init__(
-            self, "Multi-Occupation, Multi-Isotope Model", True, 0.2, fixed=fixed
+            self,
+            "Multi-Occupation, Multi-Isotope Model",
+            True,
+            0.2,
+            fixed=fixed,
         )
         self.cS = 1
         self.set_params(random=not fixed)
+        if normalized_rs is not None:
+            self.T_to_S = MultiOccupationMultiIsotope.log_un_normalize(
+                normalized_rs,
+                MultiOccupationMultiIsotope.min_r,
+                MultiOccupationMultiIsotope.max_r,
+            )
         g = 1
         f = 1
 
@@ -174,6 +188,12 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
         max_log = np.log(max_val)
         val_log = np.log(val)
         return (val_log - min_log) / (max_log - min_log)
+
+    @staticmethod
+    def log_un_normalize(val, min_val, max_val):
+        min_log = np.log(min_val)
+        max_log = np.log(max_val)
+        return np.exp(val * (max_log - min_log) + min_log)
 
     def rhs(self, t, c):
         return self.E @ (
