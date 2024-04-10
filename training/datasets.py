@@ -7,6 +7,8 @@ from models.analytical import TrapDiffusion
 import time
 from datetime import timedelta
 import random
+from functools import partial
+from multiprocessing import Pool, Array, shared_memory
 
 
 def load_dataset_info(dataset_name, dataset_dir):
@@ -58,6 +60,47 @@ def estimate_dataset_size(
     return samples, samples * bytes_per_sample
 
 
+def create_shared_array(shape):
+    shm = shared_memory.SharedMemory(
+        create=True, size=int(np.prod(shape)) * np.dtype(np.float32).itemsize
+    )
+    return np.ndarray(shape, dtype=np.float32, buffer=shm.buf), shm
+
+
+def init(xx, yy, cc):
+    global x, y, c
+    x = xx
+    y = yy
+    c = cc
+
+
+def fill_config(
+    index,
+    model,
+    initial_per_config,
+    configs,
+    verbose,
+    n_timesteps,
+    is_fixed,
+    include_params,
+    log_t_eval,
+):
+    analytical_model = model(fixed=is_fixed)
+    for config in tqdm(
+        range(initial_per_config),
+        desc="initial_values",
+        disable=configs > 1 or not verbose,
+    ):
+        x_, y_ = analytical_model.training_data(
+            n_eval=n_timesteps, include_params=include_params, log_t_eval=log_t_eval
+        )
+        c_ = analytical_model.correction_factors()
+        current_index = index * n_timesteps * initial_per_config + config * n_timesteps
+        x[current_index : current_index + n_timesteps] = x_
+        y[current_index : current_index + n_timesteps] = y_
+        c[current_index : current_index + n_timesteps] = c_
+
+
 def create_dataset(
     model: type[TrapDiffusion],
     dataset_name,
@@ -71,6 +114,7 @@ def create_dataset(
     verbose=True,
     pre_normalized=False,
     log_t_eval=False,
+    workers=1,
 ):
     total_samples, total_size = estimate_dataset_size(
         model,
@@ -94,26 +138,38 @@ def create_dataset(
     samples, input_channels, output_channels, correction_channels = dataset_channels(
         model, include_params, configs, initial_per_config, n_timesteps
     )
-    x = np.empty((samples, input_channels), dtype=np.float32)
-    y = np.empty((samples, output_channels), dtype=np.float32)
-    c = np.empty((samples, correction_channels), dtype=np.float32)
-    current_index = 0
-    for _ in tqdm(range(configs), desc="configs", disable=configs == 1 or not verbose):
-        analytical_model = model(fixed=is_fixed)
-        for _ in tqdm(
-            range(initial_per_config),
-            desc="initial_values",
-            disable=configs > 1 or not verbose,
-        ):
-            x_, y_ = analytical_model.training_data(
-                n_eval=n_timesteps, include_params=include_params, log_t_eval=log_t_eval
+
+    x_shape = (samples, input_channels)
+    y_shape = (samples, output_channels)
+    c_shape = (samples, correction_channels)
+
+    # Create shared arrays
+    x, x_shm = create_shared_array(x_shape)
+    y, y_shm = create_shared_array(y_shape)
+    c, c_shm = create_shared_array(c_shape)
+
+    chunksize = 1  # max(min(max(configs // workers, 1), configs // 20), 1)
+    print(f"{chunksize=}")
+    f = partial(
+        fill_config,
+        model=model,
+        initial_per_config=initial_per_config,
+        configs=configs,
+        verbose=verbose,
+        n_timesteps=n_timesteps,
+        is_fixed=is_fixed,
+        include_params=include_params,
+        log_t_eval=log_t_eval,
+    )
+
+    with Pool(processes=workers, initializer=init, initargs=(x, y, c)) as pool:
+        list(
+            tqdm(
+                pool.imap(f, range(configs), chunksize=chunksize),
+                total=configs,
+                desc="configs",
             )
-            n = len(x_)
-            c_ = analytical_model.correction_factors()
-            x[current_index : current_index + n] = x_
-            y[current_index : current_index + n] = y_
-            c[current_index : current_index + n] = c_
-            current_index += n
+        )
 
     if pre_normalized:
         y *= c
@@ -127,6 +183,10 @@ def create_dataset(
     np.save(dataset_dir / x_path, x)
     np.save(dataset_dir / y_path, y)
     np.save(dataset_dir / c_path, c)
+
+    x_shm.unlink()
+    y_shm.unlink()
+    c_shm.unlink()
     if info is None:
         info = dict()
     info["inputs_path"] = x_path
