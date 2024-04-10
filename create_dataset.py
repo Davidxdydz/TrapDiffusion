@@ -96,6 +96,42 @@ presets = {
         "dir": "datasets",
         "pre_normalized": True,
     },
+    "MOMI_random_normalized_large": {
+        "model": "MOMI",
+        "dataset_name": "Multi-Occupation, Multi Isotope, random matrix, normalized large",
+        "configs": 5000,
+        "initial_per_config": 100,
+        "n_timesteps": 50,
+        "log_t_eval": True,
+        "include_params": True,
+        "seed": 1,
+        "dir": "datasets",
+        "pre_normalized": True,
+    },
+    "test": {
+        "model": "MOMI",
+        "dataset_name": "test",
+        "configs": 50,
+        "initial_per_config": 10,
+        "n_timesteps": 40,
+        "log_t_eval": True,
+        "include_params": True,
+        "seed": 1,
+        "dir": "datasets",
+        "pre_normalized": True,
+    },
+    "test_small": {
+        "model": "MOMI",
+        "dataset_name": "test",
+        "configs": 2,
+        "initial_per_config": 2,
+        "n_timesteps": 2,
+        "log_t_eval": True,
+        "include_params": True,
+        "seed": 1,
+        "dir": "datasets",
+        "pre_normalized": True,
+    },
 }
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -112,6 +148,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=argparse.SUPPRESS)
     parser.add_argument("--dir", type=str, default=argparse.SUPPRESS)
     parser.add_argument("--quiet", "-q", action=argparse.BooleanOptionalAction)
+    parser.add_argument("--workers", type=int, default=1)
 
     args = parser.parse_args()
 
