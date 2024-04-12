@@ -7,6 +7,7 @@ from models.cpu import CPUSequential
 import os
 import pandas as pd
 import itertools
+from pathlib import Path
 
 
 def plot_color_legend(color_dict, title=None):
@@ -15,11 +16,26 @@ def plot_color_legend(color_dict, title=None):
     plt.legend(title=title)
 
 
-def plot_df(df: pd.DataFrame, x: str, y: str, c: str = None, **kwargs):
+def savefig(path, **kwargs):
+    plt.savefig(path, bbox_inches="tight", **kwargs)
+
+
+def plot_df(
+    df: pd.DataFrame,
+    x: str,
+    y: str,
+    c: str = None,
+    clabel=None,
+    dir="report/figures",
+    subdir=None,
+    name=None,
+    save=False,
+    **kwargs,
+):
     custom_colors = False
     col = None
     if c is not None:
-        if df.dtypes[c].name == "object":
+        if df.dtypes[c].name == "string":
             custom_colors = True
             available_colors = itertools.cycle(
                 ["red", "green", "blue", "black", "purple", "orange"]
@@ -34,17 +50,35 @@ def plot_df(df: pd.DataFrame, x: str, y: str, c: str = None, **kwargs):
             col = df[c].map(map_colors)
         else:
             col = df[c]
+        if clabel is None:
+            clabel = c
     df.plot(
         x=x,
         y=y,
         c=col,
         kind="scatter",
         grid=True,
-        cmap=None if (custom_colors or c is None) else "viridis",
+        cmap=None if (custom_colors or (c is None)) else "viridis",
         **kwargs,
     )
     if custom_colors:
-        plot_color_legend(colors, c)
+        plot_color_legend(colors, clabel)
+    if not (custom_colors or (c is None)):
+        plt.gcf().get_axes()[1].set_ylabel(clabel)  # colorbar
+    if name is not None or subdir is not None or dir is not None:
+        save = True
+
+    if save:
+        path = Path(dir)
+        if subdir:
+            path /= subdir
+        path.mkdir(parents=True, exist_ok=True)
+        if name is None:
+            if c is None:
+                name = f"{x}_{y}"
+            else:
+                name = f"{x}_{y}_{c}"
+        savefig(path / f"{name}.pdf")
 
 
 def measure_performance(
@@ -114,7 +148,6 @@ def create_tuner(
     output_name,
     output_dir,
     clear,
-    max_time,
     method,
     dataset_name,
     dataset_dir,
@@ -135,7 +168,6 @@ def create_tuner(
             input_channels=info["input_channels"],
             output_channels=info["output_channels"],
             normalizer=info.get("pre_normalized", False),
-            max_cpu_time=max_time,
             dataset_name=dataset_name,
             dataset_dir=dataset_dir,
         ),
