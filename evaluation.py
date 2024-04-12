@@ -37,7 +37,10 @@ def saveable(savename_func=None, default_dir="report/figures"):
                 path = Path(dir)
                 path.mkdir(parents=True, exist_ok=True)
                 if savename is None:
-                    savename = savename_func(**kwargs)
+                    if savename_func is None:
+                        savename = func.__name__
+                    else:
+                        savename = savename_func(**kwargs)
                 path /= savename
                 path = path.with_suffix(".pdf")
                 savefig(path)
@@ -113,6 +116,7 @@ def measure_performance(
     return t
 
 
+@saveable(default_dir="report/figures")
 def performance_batch_size_plot(analytical_model: type[TrapDiffusion], surrogate_model):
     factors = {"s": 1, "ms": 1e3, "µs": 1e6, "ns": 1e9}
     batch_sizes = np.arange(10, 1000, 10)
