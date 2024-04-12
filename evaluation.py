@@ -19,7 +19,7 @@ def plot_color_legend(color_dict, title=None):
 
 @saveable(
     lambda *, x, y, c, **kwargs: f"{x}_{y}" + (f"_{c}" if c else ""),
-    default_dir="report/figures",
+    default_dir="report/figures/search",
 )
 def plot_df(
     df: pd.DataFrame,
