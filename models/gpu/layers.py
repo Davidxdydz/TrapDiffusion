@@ -8,7 +8,7 @@ class Normalizer(keras.layers.Layer):
         self.norm_loss_weight = norm_loss_weight
 
     def call(self, inputs):
-        sums = ops.sum(inputs, axis=-1, keepdims=True)
+        sums = ops.sum(ops.abs(inputs), axis=-1, keepdims=True)
         self.add_loss(ops.mean(ops.abs(1 - sums)) * self.norm_loss_weight)
         result = inputs / sums
         return result
