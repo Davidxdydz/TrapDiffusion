@@ -55,7 +55,7 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
             self,
             "Multi-Occupation, Multi-Isotope Model",
             True,
-            0.2,
+            1 if fixed else 1e7,
             fixed=fixed,
         )
         self.cS = 1
@@ -253,6 +253,13 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
     def plot_details(self, t, y):
         self.plot_total(t, y, correct=True, label="total")
 
+    def plot(self, *args, **kwargs):
+        if "log_t_eval" not in kwargs:
+            kwargs["log_t_eval"] = True
+        if "pre_normalized" not in kwargs:
+            kwargs["pre_normalized"] = True
+        return TrapDiffusion.plot(self, *args, **kwargs)
+
     @property
     def y_unit(self):
         return "$\\left[\\frac{trap-sites}{lattice-sites}\\right]$"
@@ -263,9 +270,13 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
 
     def inputs_transform(self, inputs):
         # 13 is empirical
-        inputs[:, 0] = (np.log10(inputs[:, 0]) + 13) / 13
+        inputs[:, 0] = MultiOccupationMultiIsotope.log_normalize(
+            inputs[:, 0], 1e-13, self.t_final
+        )
         return inputs
 
     def inputs_reverse_transform(self, inputs):
-        inputs[:, 0] = 10 ** (inputs[:, 0] * 13 - 13)
+        inputs[:, 0] = MultiOccupationMultiIsotope.log_un_normalize(
+            inputs[:, 0], 1e-13, self.t_final
+        )
         return inputs
