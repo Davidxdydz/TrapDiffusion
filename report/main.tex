@@ -39,11 +39,20 @@
 - MOMI fixed
 - MOMI random?
 \subsection{Robustness}
-- Numerical/ analytical solver can fail, this model not xddd
+% - Numerical/ analytical solver can fail, this model not xddd
+The configurations for which the network yields the worst results mainly show problems in the dataset and confirm the robustness of the learned function.
+
+The ode solver used to generate the ground truth (\ref{data}) can fail to give a correct solution for some rare configurations (~1 in 50,000). 
+Whilst the solutions still looks plausible and adhere to conservation of mass, the network can't seem to learn these configurations and predicts deviating results.
+After decreasing the solvers relative tolerances by several orders of magnitude, the numerical solution now agrees with the network's prediction.
+
+\includegraphics[width=\textwidth]{figures/MOMI_fixed_normalized_worst_case_fixed.pdf}
+\includegraphics[width=\textwidth]{figures/MOMI_fixed_normalized_worst_case.pdf}
 \section{Conclusion}
 - Cool and good
 
 \section{Appendix}
+\subsection{Data generation}\label{data}
 
 
 
