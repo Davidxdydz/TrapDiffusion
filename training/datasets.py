@@ -115,6 +115,7 @@ def create_dataset(
     pre_normalized=False,
     log_t_eval=False,
     workers=1,
+    chunksize=1,
 ):
     total_samples, total_size = estimate_dataset_size(
         model,
@@ -148,8 +149,8 @@ def create_dataset(
     y, y_shm = create_shared_array(y_shape)
     c, c_shm = create_shared_array(c_shape)
 
-    chunksize = 1  # max(min(max(configs // workers, 1), configs // 20), 1)
-    print(f"{chunksize=}")
+    # chunksize = 1  # max(min(max(configs // workers, 1), configs // 20), 1)
+    # print(f"{chunksize=}")
     f = partial(
         fill_config,
         model=model,
