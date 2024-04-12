@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
+import pickle
 
 
 def hadamard(A, B):
@@ -77,25 +78,34 @@ class TrapDiffusion:
         else:
             t_eval = np.linspace(0, self.t_final, n_eval + 1)
         t_eval = t_eval[1:]
+        try:
+            if self.use_jacobian:
+                sol = solve_ivp(
+                    fun=self.rhs,
+                    y0=y0,
+                    t_span=(0, self.t_final),
+                    t_eval=t_eval,
+                    jac=self.jacobian,
+                    # method="BDF",
+                    # rtol=1e-4,
+                    method="Radau",
+                    rtol=1e-5,
+                )
+            else:
+                sol = solve_ivp(
+                    fun=self.rhs,
+                    y0=y0,
+                    t_span=(0, self.t_final),
+                    t_eval=t_eval,
+                )
+        except Exception as e:
+            print(f"Solver failed: {e}")
+            print(f"Failed config:\n{y0=}\n{t_eval=}")
+            raise e
 
-        if self.use_jacobian:
-            sol = solve_ivp(
-                fun=self.rhs,
-                y0=y0,
-                t_span=(0, self.t_final),
-                t_eval=t_eval,
-                jac=self.jacobian,
-                # method="BDF",
-                # rtol=1e-3,
-                method="Radau",
-            )
-        else:
-            sol = solve_ivp(
-                fun=self.rhs,
-                y0=y0,
-                t_span=(0, self.t_final),
-                t_eval=t_eval,
-            )
+        assert (
+            len(sol.t) == n_eval
+        ), f"Expected {n_eval} evaluations, got {len(sol.t)}\n{y0=}\n{t_eval=}\n{sol.t=}\n{sol.y=}\n{self.get_relevant_params()}"
         # t = 0 is the initial value, so we can drop it
         return sol.t, sol.y
 
@@ -119,6 +129,15 @@ class TrapDiffusion:
     def xlabel(self):
         return "Time $[s]$"
 
+    @staticmethod
+    def load(path):
+        with open(path, "rb") as f:
+            return pickle.load(f)
+
+    def save(self, path):
+        with open(path, "wb") as f:
+            pickle.dump(self, f)
+
     @property
     def xscale(self):
         return "linear"
@@ -129,9 +148,18 @@ class TrapDiffusion:
         """
         raise NotImplementedError("Subclass must implement abstract method")
 
-    def plot(self, t=None, y=None, n_eval=200, log_t_eval=False):
+    def plot(
+        self,
+        t=None,
+        y=None,
+        n_eval=200,
+        log_t_eval=False,
+        initial_values=None,
+        pre_normalized=False,
+    ):
         if y is None or t is None:
-            initial_values = self.initial_values()
+            if initial_values is None:
+                initial_values = self.initial_values()
             t, y = self.solve(initial_values, n_eval=n_eval, log_t_eval=log_t_eval)
 
         plt.figure()
@@ -139,7 +167,10 @@ class TrapDiffusion:
         for key, value in self.vector_description.items():
             # to get the concentration in H/lattice site we have to multiply with the trap/solute concentrations c_S_T
             # otherwise this would be h per solute-site/ trap-site
-            plt.plot(t, y[key] * correction_factors[key], label=value)
+            if pre_normalized:
+                plt.plot(t, y[key], label=value)
+            else:
+                plt.plot(t, y[key] * correction_factors[key], label=value)
 
         self.plot_details(t, y)
         plt.legend(loc="center right")
