@@ -43,7 +43,6 @@ class HyperModel(kt.HyperModel):
         input_channels,
         output_channels,
         normalizer=False,
-        max_cpu_time=50e-6,
         retries=50,
         dataset_name=None,
         dataset_dir="datasets",
@@ -53,7 +52,6 @@ class HyperModel(kt.HyperModel):
         self.input_channels = input_channels
         self.output_channels = output_channels
         self.normalizer = normalizer
-        self.max_cpu_time = max_cpu_time
         self.retries = retries
         self.dataset_name = dataset_name
         self.dataset_dir = dataset_dir
@@ -64,11 +62,18 @@ class HyperModel(kt.HyperModel):
         for i in range(hp.Int("num_layers", 1, 5)):
             model.add(
                 keras.layers.Dense(
-                    units=hp.Int(f"layer_size_{i}", 32, 512, 32),
+                    units=hp.Int(f"layer_size_{i}", 32, 1024, 32),
                     activation=hp.Choice(f"activation_{i}", ["relu", "tanh"]),
                 )
             )
-        model.add(keras.layers.Dense(self.output_channels, activation="leaky_relu"))
+        model.add(
+            keras.layers.Dense(
+                units=self.output_channels,
+                activation=hp.Choice(
+                    "output_activation", ["leaky_relu", "relu", "tanh"]
+                ),
+            )
+        )
         if self.normalizer:
             norm_loss_weight = hp.Float("norm_loss_weight", 0, 1)
             model.add(Normalizer(norm_loss_weight=norm_loss_weight))
@@ -90,11 +95,7 @@ class HyperModel(kt.HyperModel):
         return model
 
     def build(self, hp: kt.HyperParameters):
-        model = self.create_model(hp)
-        cpu_time = estimate_cpu_time(model)
-        if cpu_time < self.max_cpu_time:
-            return model
-        raise ValueError("Model takes to long to evaluate on CPU.")
+        return self.create_model(hp)
 
     def fit(self, hp: kt.HyperParameters, model, *args, **kwargs):
         kwargs.get("callbacks", []).append(
@@ -103,6 +104,6 @@ class HyperModel(kt.HyperModel):
         return model.fit(
             *args,
             shuffle=hp.Boolean("shuffle"),
-            batch_size=hp.Int("batch_size", 2**12, 2**14, sampling="log"),
+            batch_size=hp.Int("batch_size", 2**10, 2**15, sampling="log"),
             **kwargs,
         )

@@ -5,7 +5,7 @@ from training.datasets import load_dataset
 import argparse
 import json
 from pathlib import Path
-from training.loaders import create_tuner
+from evaluation import create_tuner
 
 
 if __name__ == "__main__":
@@ -15,7 +15,6 @@ if __name__ == "__main__":
     parser.add_argument("--output_name", "-o", default=None)
     parser.add_argument("--output_dir", "-d", default="random_search")
     parser.add_argument("--clear", "-c", action="store_true", default=False)
-    parser.add_argument("--max_time", default=50e-6)
     parser.add_argument(
         "--method", default="random", choices=["random", "bayesian", "hyperband"]
     )
@@ -26,7 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_dir", default="datasets")
     args = parser.parse_args()
     if args.output_name is None:
-        args.output_name = f"{args.max_time*1e6:.0f}µs {args.dataset_name}"
+        args.output_name = f"{args.dataset_name}"
 
     info, (x_train, y_train), (x_val, y_val) = load_dataset(
         args.dataset_name, args.dataset_dir
@@ -45,6 +44,6 @@ if __name__ == "__main__":
         x_train,
         y_train,
         validation_data=(x_val, y_val),
-        epochs=1,
+        epochs=10,
         verbose=0 if quiet else 1,
     )
