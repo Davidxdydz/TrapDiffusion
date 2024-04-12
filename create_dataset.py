@@ -1,6 +1,7 @@
 from training.datasets import create_dataset
 from models.analytical import SingleOccupationSingleIsotope, MultiOccupationMultiIsotope
 import argparse
+import datetime
 
 models = {
     "SOSI": SingleOccupationSingleIsotope,
@@ -22,7 +23,7 @@ presets = {
         "model": "SOSI",
         "dataset_name": "Single-Occupation, Single Isotope, fixed matrix, normalized",
         "configs": 1,
-        "initial_per_config": 10000,
+        "initial_per_config": 50000,
         "n_timesteps": 100,
         "include_params": False,
         "seed": "fixed",
@@ -42,9 +43,9 @@ presets = {
     "SOSI_random_normalized": {
         "model": "SOSI",
         "dataset_name": "Single-Occupation, Single Isotope, random matrix, normalized",
-        "configs": 1000,
+        "configs": 5000,
         "initial_per_config": 100,
-        "n_timesteps": 50,
+        "n_timesteps": 100,
         "include_params": True,
         "seed": 1,
         "dir": "datasets",
@@ -65,7 +66,7 @@ presets = {
         "model": "MOMI",
         "dataset_name": "Multi-Occupation, Multi Isotope, fixed matrix, normalized",
         "configs": 1,
-        "initial_per_config": 10000,
+        "initial_per_config": 100000,
         "n_timesteps": 100,
         "log_t_eval": True,
         "include_params": False,
@@ -87,21 +88,9 @@ presets = {
     "MOMI_random_normalized": {
         "model": "MOMI",
         "dataset_name": "Multi-Occupation, Multi Isotope, random matrix, normalized",
-        "configs": 1000,
-        "initial_per_config": 100,
-        "n_timesteps": 100,
-        "log_t_eval": True,
-        "include_params": True,
-        "seed": 1,
-        "dir": "datasets",
-        "pre_normalized": True,
-    },
-    "MOMI_random_normalized_large": {
-        "model": "MOMI",
-        "dataset_name": "Multi-Occupation, Multi Isotope, random matrix, normalized large",
         "configs": 5000,
         "initial_per_config": 100,
-        "n_timesteps": 50,
+        "n_timesteps": 100,
         "log_t_eval": True,
         "include_params": True,
         "seed": 1,
@@ -114,18 +103,6 @@ presets = {
         "configs": 50,
         "initial_per_config": 10,
         "n_timesteps": 40,
-        "log_t_eval": True,
-        "include_params": True,
-        "seed": 1,
-        "dir": "datasets",
-        "pre_normalized": True,
-    },
-    "test_small": {
-        "model": "MOMI",
-        "dataset_name": "test",
-        "configs": 2,
-        "initial_per_config": 2,
-        "n_timesteps": 2,
         "log_t_eval": True,
         "include_params": True,
         "seed": 1,
@@ -149,6 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--dir", type=str, default=argparse.SUPPRESS)
     parser.add_argument("--quiet", "-q", action=argparse.BooleanOptionalAction)
     parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--chunksize", type=int, default=1)
 
     args = parser.parse_args()
 
@@ -171,5 +149,9 @@ if __name__ == "__main__":
         arg_dict["model"] = models[arg_dict["model"]]
     else:
         raise ValueError("model must be specified")
+
+    arg_dict["info"] = {
+        "created": datetime.datetime.now().isoformat(),
+    }
 
     create_dataset(**arg_dict)
