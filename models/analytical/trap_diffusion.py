@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 import pickle
+from saveable import saveable
 
 
 def hadamard(A, B):
@@ -148,6 +149,7 @@ class TrapDiffusion:
         """
         raise NotImplementedError("Subclass must implement abstract method")
 
+    @saveable(default_dir="report/figures/diffusion_plot")
     def plot(
         self,
         t=None,
@@ -189,6 +191,7 @@ class TrapDiffusion:
         total = np.sum(y, axis=0)
         plt.plot(t, total, label=label, color="red", linewidth=2, linestyle=":")
 
+    @saveable(default_dir="report/figures/model_evaluation")
     def evaluate(
         self,
         model,
@@ -219,7 +222,6 @@ class TrapDiffusion:
         targets *= corrections
         delta = np.abs(targets - predictions)
         ts = inputs[:, 0]
-        plt.figure(figsize=(20, 10))
         main_axis = plt.gca()
         error_axis = main_axis.twinx()
         for index, description in self.vector_description.items():
