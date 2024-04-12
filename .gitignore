@@ -13,3 +13,4 @@ logs
 create_datasets.sh
 lr.txt
 *.keras
+report/figures
