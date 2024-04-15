@@ -19,7 +19,7 @@ def saveable(savename_func=None, default_dir="report/figures"):
                 w = kwargs.pop("width")
             plt.figure(figsize=(width_scale * w, height_scale * h))
             result = func(*args, **kwargs)
-            if savename is not None or dir != default_dir:
+            if savename is not None or (dir != default_dir and dir is not None):
                 save = True
             if save:
                 if dir is None:
