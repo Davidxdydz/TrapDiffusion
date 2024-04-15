@@ -1,0 +1,4 @@
+ # text.usetex : True
+font.family : serif
+font.size : 10
+figure.figsize : 6.13899, 4
