@@ -164,7 +164,6 @@ class TrapDiffusion:
                 initial_values = self.initial_values()
             t, y = self.solve(initial_values, n_eval=n_eval, log_t_eval=log_t_eval)
 
-        plt.figure()
         correction_factors = self.correction_factors()
         for key, value in self.vector_description.items():
             # to get the concentration in H/lattice site we have to multiply with the trap/solute concentrations c_S_T
