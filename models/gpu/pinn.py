@@ -69,9 +69,7 @@ class HyperModel(kt.HyperModel):
         model.add(
             keras.layers.Dense(
                 units=self.output_channels,
-                activation=hp.Choice(
-                    "output_activation", ["leaky_relu", "relu", "tanh"]
-                ),
+                activation=hp.Choice("output_activation", ["leaky_relu"]),
             )
         )
         if self.normalizer:
@@ -79,10 +77,10 @@ class HyperModel(kt.HyperModel):
             model.add(Normalizer(norm_loss_weight=norm_loss_weight))
             loss_function = "mae"
         else:
-            physics_weight = hp.Float("physics_weight", 0, 1)
+            physics_weight = hp.Float("physics_weight", 0.4, 1)
             loss_function = PhysicsLoss(physics_weight=physics_weight)
 
-        learning_rate = hp.Float("learning_rate", 1e-4, 1e-2, sampling="log")
+        learning_rate = hp.Float("learning_rate", 1e-4, 1e-3, sampling="log")
         model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=learning_rate),
             loss=loss_function,
@@ -103,7 +101,7 @@ class HyperModel(kt.HyperModel):
         )
         return model.fit(
             *args,
-            shuffle=hp.Boolean("shuffle"),
-            batch_size=hp.Int("batch_size", 2**10, 2**15, sampling="log"),
+            shuffle=True,
+            batch_size=2**12,
             **kwargs,
         )
