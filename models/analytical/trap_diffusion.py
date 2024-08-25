@@ -37,7 +37,12 @@ class TrapDiffusion:
         raise NotImplementedError("Subclass must implement abstract method")
 
     def training_data(
-        self, include_params=False, n_eval=None, initial_values=None, log_t_eval=False
+        self,
+        include_params=False,
+        n_eval=None,
+        initial_values=None,
+        log_t_eval=False,
+        faulty=False,
     ):
         """
         Generate training data from existing parameters but with random initial conditions.
@@ -45,20 +50,34 @@ class TrapDiffusion:
         [[t,c0_0,c0_1,..., <optional params>],] and [[ct_0,ct_1,...]]
         which correspond to the training data and the labels.
         """
-        if initial_values is None:
-            initial_values = self.initial_values()
-        t, solutions = self.solve(initial_values, n_eval, log_t_eval)
-        tiled_initial_values = np.tile(initial_values, (len(t), 1))
-        if include_params:
-            relevant_params = self.get_relevant_params()
-            tiled_relevant_params = np.tile(relevant_params, (len(t), 1))
-            x = np.hstack([t[:, None], tiled_initial_values, tiled_relevant_params])
-        else:
-            x = np.hstack([t[:, None], tiled_initial_values])
-        y = solutions.T
-        x = self.inputs_transform(x)
-        y = self.targets_transform(y)
-        return x, y
+        was_None = initial_values is None
+        while True:
+            try:
+                if initial_values is None or was_None:
+                    initial_values = self.initial_values()
+                t, solutions = self.solve(
+                    initial_values, n_eval, log_t_eval, faulty=faulty
+                )
+                tiled_initial_values = np.tile(initial_values, (len(t), 1))
+                if include_params:
+                    relevant_params = self.get_relevant_params()
+                    tiled_relevant_params = np.tile(relevant_params, (len(t), 1))
+                    x = np.hstack(
+                        [t[:, None], tiled_initial_values, tiled_relevant_params]
+                    )
+                else:
+                    x = np.hstack([t[:, None], tiled_initial_values])
+                y = solutions.T
+                if not faulty:
+                    assert np.all(
+                        y > -1e-8
+                    ), f"solution contains negative values, {y[y< -1e-8]}"
+                    y[y < 0] = 0
+                x = self.inputs_transform(x)
+                y = self.targets_transform(y)
+                return x, y
+            except AssertionError as e:
+                print(e)
 
     def inputs_transform(self, inputs):
         return inputs
@@ -72,13 +91,17 @@ class TrapDiffusion:
     def targets_reverse_transform(self, targets):
         return targets
 
-    def solve(self, y0, n_eval, log_t_eval=False):
+    def solve(self, y0, n_eval, log_t_eval=False, faulty=False):
         t_eval = None
         if log_t_eval:
             t_eval = np.geomspace(1e-13, self.t_final, n_eval + 1)
         else:
             t_eval = np.linspace(0, self.t_final, n_eval + 1)
         t_eval = t_eval[1:]
+        args = {
+            True: dict(method="BDF", rtol=1e-4),
+            False: dict(method="Radau", atol=1e-9),
+        }
         try:
             if self.use_jacobian:
                 sol = solve_ivp(
@@ -87,10 +110,7 @@ class TrapDiffusion:
                     t_span=(0, self.t_final),
                     t_eval=t_eval,
                     jac=self.jacobian,
-                    # method="BDF",
-                    # rtol=1e-4,
-                    method="Radau",
-                    rtol=1e-5,
+                    **args[faulty],
                 )
             else:
                 sol = solve_ivp(
@@ -157,21 +177,17 @@ class TrapDiffusion:
         n_eval=200,
         log_t_eval=False,
         initial_values=None,
-        pre_normalized=False,
+        faulty=False,
     ):
         if y is None or t is None:
             if initial_values is None:
                 initial_values = self.initial_values()
-            t, y = self.solve(initial_values, n_eval=n_eval, log_t_eval=log_t_eval)
+            t, y = self.solve(
+                initial_values, n_eval=n_eval, log_t_eval=log_t_eval, faulty=faulty
+            )
 
-        correction_factors = self.correction_factors()
         for key, value in self.vector_description.items():
-            # to get the concentration in H/lattice site we have to multiply with the trap/solute concentrations c_S_T
-            # otherwise this would be h per solute-site/ trap-site
-            if pre_normalized:
-                plt.plot(t, y[key], label=value)
-            else:
-                plt.plot(t, y[key] * correction_factors[key], label=value)
+            plt.plot(t, y[key], label=value)
 
         self.plot_details(t, y)
         plt.legend(loc="center right")
@@ -183,11 +199,8 @@ class TrapDiffusion:
         plt.tight_layout()
 
     def plot_total(self, t, y, correct=False, label="total concentration"):
-        if correct:
-            y *= self.correction_factors()[:, None]
 
-        # total h per lattice site has to stay constant
-        total = np.sum(y, axis=0)
+        total = self.correction_factors() @ y
         plt.plot(t, total, label=label, color="red", linewidth=2, linestyle=":")
 
     @saveable(default_dir="report/figures/model_evaluation")
@@ -197,9 +210,10 @@ class TrapDiffusion:
         include_params=False,
         n_eval=None,
         legend=True,
-        pre_normalized=False,
         initial_values=None,
         log_t_eval=False,
+        plot_error=True,
+        faulty=False,
     ):
         """
         Evaluate the model with the given prediction function.
@@ -209,16 +223,13 @@ class TrapDiffusion:
             include_params=include_params,
             initial_values=initial_values,
             log_t_eval=log_t_eval,
+            faulty=faulty,
         )
         predictions = model.predict(inputs)
         predictions = self.targets_reverse_transform(predictions)
         targets = self.targets_reverse_transform(targets)
         inputs = self.inputs_reverse_transform(inputs)
 
-        corrections = self.correction_factors()
-        if not pre_normalized:
-            predictions *= corrections
-        targets *= corrections
         delta = np.abs(targets - predictions)
         ts = inputs[:, 0]
         main_axis = plt.gca()
@@ -238,20 +249,22 @@ class TrapDiffusion:
                 color=color,
                 marker="x",
             )
-            error_axis.plot(
-                ts,
-                delta[:, index],
-                label=f"$|Error|$ of {description}",
-                color=color,
-                linewidth=0.5,
-                linestyle="--",
-            )
+            if plot_error:
+                error_axis.plot(
+                    ts,
+                    delta[:, index],
+                    label=f"$|Error|$ of {description}",
+                    color=color,
+                    linewidth=0.5,
+                    linestyle="--",
+                )
         plt.sca(main_axis)
+        self.plot_details(ts, predictions.T)
         plt.ylabel(f"Concentration {self.y_unit}")
         plt.xlabel(self.xlabel)
         plt.xscale(self.xscale)
         plt.title(f"{model.name}")
-        self.plot_total(ts, predictions.T)
+        # self.plot_total(ts, predictions.T)
         if legend:
             plt.legend(loc="center right")
         plt.grid()
@@ -259,7 +272,8 @@ class TrapDiffusion:
 
         plt.sca(error_axis)
         plt.xscale(self.xscale)
-        plt.ylabel(f"Absolute Error {self.y_unit}")
+        if plot_error:
+            plt.ylabel(f"Absolute Error {self.y_unit}")
         if legend:
             plt.legend(loc="center left")
         plt.tight_layout()

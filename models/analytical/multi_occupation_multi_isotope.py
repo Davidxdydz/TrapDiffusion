@@ -1,6 +1,9 @@
+from typing import overload
 import numpy as np
 from models.analytical.trap_diffusion import TrapDiffusion, hadamard
 from training.parameter_range import ParameterRange
+import matplotlib.pyplot as plt
+from saveable import saveable
 
 
 class MultiOccupationMultiIsotope(TrapDiffusion):
@@ -223,6 +226,18 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
             MultiOccupationMultiIsotope.max_r,
         )
 
+    def isotope_concentration_matrix(self):
+        """
+        M * c0 = (c_H_total, c_D_total)
+        """
+        return np.array(
+            # [c_H, c_D, c_T_00, c_T_10, c_T_01, c_T_20, c_T_11, c_T_02, c_T_30, c_T_21, c_T_12, c_T_03]
+            [
+                [1, 0, 0, 1, 0, 2, 1, 0, 3, 2, 1, 0],
+                [0, 1, 0, 0, 1, 0, 1, 2, 0, 1, 2, 3],
+            ]
+        )
+
     def initial_values(self):
         """
         Return random plausible initial values for the concentration vector.
@@ -230,6 +245,101 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
         c = np.random.uniform(0, 1, 12)
         c /= np.sum(c * self.correction_factors())
         return c
+
+    # @saveable(default_dir="report/figures/model_evaluation")
+    def evaluate(
+        self,
+        model,
+        include_params=False,
+        n_eval=None,
+        legend=True,
+        initial_values=None,
+        log_t_eval=False,
+        plot_error=True,
+        faulty=False,
+        plot_masses=False,
+    ):
+        """
+        Evaluate the model with the given prediction function.
+        """
+        inputs, targets = self.training_data(
+            n_eval=n_eval,
+            include_params=include_params,
+            initial_values=initial_values,
+            log_t_eval=log_t_eval,
+            faulty=faulty,
+        )
+        predictions = model.predict(inputs)
+        predictions = self.targets_reverse_transform(predictions)
+        targets = self.targets_reverse_transform(targets)
+        inputs = self.inputs_reverse_transform(inputs)
+
+        delta = np.abs(targets - predictions)
+        ts = inputs[:, 0]
+
+        import matplotlib.gridspec as gridspec
+
+        if plot_error:
+            gs = gridspec.GridSpec(2, 1, height_ratios=[2, 1])
+            plt.subplot(gs[0])
+            main_axis = plt.gca()
+            plt.subplot(gs[1], sharex=main_axis)
+            error_axis = plt.gca()
+        else:
+            main_axis = plt.gca()
+        for index, description in self.vector_description.items():
+            p = main_axis.plot(
+                ts,
+                targets[:, index],
+                # label=f"{description} - analytical",
+                linewidth=2,
+            )
+            color = p[0].get_color()
+            main_axis.scatter(
+                ts,
+                predictions[:, index],
+                # label=f"{description} - PINN",
+                color=color,
+                marker="x",
+            )
+            if plot_error:
+                error_axis.plot(
+                    ts,
+                    delta[:, index],
+                    # label=f"$|Error|$ of {description}",
+                    color=color,
+                    # linewidth=0.5,
+                    # linestyle="--",
+                )
+
+        plt.sca(main_axis)
+        if plot_masses:
+            self.plot_details(ts, predictions.T)
+        plt.scatter([], [], color="black", label="Predicted Concentration", marker="x")
+        plt.plot([], [], color="black", label="Numerical Solution")
+        plt.legend()
+        if plot_error:
+            plt.setp(main_axis.get_xticklabels(), visible=False)
+        else:
+            plt.xlabel(self.xlabel)
+        plt.ylabel(f"Concentration")
+
+        plt.xscale(self.xscale)
+        if legend:
+            plt.legend(loc="center right")
+        plt.grid()
+        plt.tight_layout()
+
+        if plot_error:
+            plt.sca(error_axis)
+            plt.grid()
+            plt.xlabel(self.xlabel)
+            plt.xscale(self.xscale)
+            if plot_error:
+                plt.ylabel(f"Absolute Error")
+            if legend:
+                plt.legend(loc="center left")
+        plt.tight_layout()
 
     @property
     def vector_description(self):
@@ -251,7 +361,10 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
         return desc
 
     def plot_details(self, t, y):
-        self.plot_total(t, y, correct=True, label="total")
+        # self.plot_total(t, y, correct=False, label="total")
+        isotope_concentrations = self.isotope_concentration_matrix() @ y
+        plt.plot(t, isotope_concentrations[0], label="$c_{H,total}$", linestyle="--")
+        plt.plot(t, isotope_concentrations[1], label="$c_{D,total}$", linestyle="--")
 
     def plot(self, *args, **kwargs):
         if "log_t_eval" not in kwargs:
