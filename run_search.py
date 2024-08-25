@@ -6,11 +6,12 @@ import argparse
 import json
 from pathlib import Path
 from evaluation import create_tuner
+from keras import ops
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--n", type=int, default=100)
+    parser.add_argument("--n", type=int, default=50)
     parser.add_argument("--quiet", "-q", action="store_true", default=False)
     parser.add_argument("--output_name", "-o", default=None)
     parser.add_argument("--output_dir", "-d", default="random_search")
@@ -30,6 +31,10 @@ if __name__ == "__main__":
     info, (x_train, y_train), (x_val, y_val) = load_dataset(
         args.dataset_name, args.dataset_dir
     )
+    x_train = ops.array(x_train)
+    y_train = ops.array(y_train)
+    x_val = ops.array(x_val)
+    y_val = ops.array(y_val)
 
     args_dict = args.__dict__
     quiet = args_dict.pop("quiet")
@@ -44,6 +49,6 @@ if __name__ == "__main__":
         x_train,
         y_train,
         validation_data=(x_val, y_val),
-        epochs=10,
+        epochs=30,
         verbose=0 if quiet else 1,
     )
