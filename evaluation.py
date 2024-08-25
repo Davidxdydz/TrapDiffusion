@@ -9,6 +9,7 @@ import pandas as pd
 import itertools
 from pathlib import Path
 from saveable import saveable
+from training.utils import estimate_model_time
 
 
 def plot_color_legend(color_dict, title=None):
@@ -82,13 +83,13 @@ def measure_performance(
 
 
 @saveable(default_dir="report/figures")
-def performance_batch_size_plot(analytical_model: type[TrapDiffusion], surrogate_model):
+def performance_batch_size_plot(surrogate_model):
     factors = {"s": 1, "ms": 1e3, "µs": 1e6, "ns": 1e9}
     batch_sizes = np.arange(10, 1000, 10)
     times = []
     for batch_size in tqdm(batch_sizes, leave=False):
-        t_s = measure_performance(
-            analytical_model, surrogate_model, batch_size=batch_size, average=10
+        t_s = estimate_model_time(
+            surrogate_model, batch_size=int(batch_size), average=10
         )
         times.append(t_s)
 
@@ -118,7 +119,7 @@ import os
 os.environ["KERAS_BACKEND"] = "torch"
 import keras_tuner as kt
 from training.datasets import load_dataset_info
-from models.gpu.pinn import HyperModel
+from models.gpu.pinn import HyperModel, MIMOHyperModel
 from pathlib import Path
 import json
 import pandas as pd
@@ -144,11 +145,11 @@ def create_tuner(
     specifice_args = {
         "random": {"max_trials": n},
         "bayesian": {"max_trials": n},
-        "hyperband": {"max_epochs": 100, "hyperband_iterations": n},
+        "hyperband": {"max_epochs": 40, "hyperband_iterations": n},
     }
     info = load_dataset_info(dataset_name, dataset_dir)
     tuner = tuner_classes[method](
-        hypermodel=HyperModel(
+        hypermodel=MIMOHyperModel(
             input_channels=info["input_channels"],
             output_channels=info["output_channels"],
             normalizer=info.get("pre_normalized", False),
@@ -156,7 +157,7 @@ def create_tuner(
             dataset_dir=dataset_dir,
         ),
         max_consecutive_failed_trials=10,  # this is also raised when model is to big
-        objective=kt.Objective("val_max_ae", "min"),
+        objective=kt.Objective("val_normed_max_ae", "min"),
         overwrite=clear,
         directory=output_dir,
         project_name=output_name,
@@ -201,7 +202,12 @@ def load_search(path, reload=False):
             else:
                 model = tuner.load_model(trial)
                 model.save(modelpath)
-            all_values["cpu_time"] = estimate_cpu_time(model)
+            try:
+                all_values["cpu_time"] = estimate_cpu_time(model)
+            except Exception as e:
+                all_values["cpu_time"] = -1
+                print(e)
+
             all_values["param_count"] = model.count_params()
             data[id] = all_values
         except Exception as e:
