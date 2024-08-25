@@ -14,3 +14,5 @@ create_datasets.sh
 lr.txt
 *.keras
 report/figures
+
+!final_models/*.keras
