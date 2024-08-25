@@ -2,29 +2,32 @@ import numpy as np
 from models.cpu import CPUSequential
 import time
 import keras
+from keras import ops
 from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
 import datetime
 
 
-def estimate_model_time(model, batch=1000, average=10):
+def estimate_model_time(model, batch_size=1000, average=10):
     """
     Inference time in seconds per sample
     """
-    x = np.random.uniform(size=(batch, model.input_shape[1]))
+    x = np.random.uniform(size=(batch_size, model.input_shape[1]))
+    x = ops.convert_to_tensor(x)
     start = time.perf_counter()
     for _ in range(average):
-        model.predict(x, batch_size=batch, verbose=0)
+        model.predict(x, batch_size=batch_size, verbose=0)
     end = time.perf_counter()
-    return (end - start) / average / batch
+    return (end - start) / average / batch_size
 
 
-def estimate_cpu_time(model, batch=1000, average=10):
+def estimate_cpu_time(model, batch_size=1000, average=10):
     """
     Inference time in seconds per sample
     """
-    cpu_model = CPUSequential(model)
-    return estimate_model_time(cpu_model, batch, average)
+    # cpu_model = CPUSequential(model)
+    cpu_model = model.cpu()
+    return estimate_model_time(cpu_model, batch_size, average)
 
 
 def calculate_metrics(
