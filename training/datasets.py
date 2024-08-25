@@ -169,11 +169,14 @@ def create_dataset(
                 pool.imap(f, range(configs), chunksize=chunksize),
                 total=configs,
                 desc="configs",
+                miniters=1,
+                smoothing=0,
+                dynamic_ncols=True,
             )
         )
 
-    if pre_normalized:
-        y *= c
+    # if pre_normalized:
+    #     y *= c
     dir = Path(dir)
     dir.mkdir(exist_ok=True)
     dataset_dir = dir.joinpath(dataset_name)
@@ -223,9 +226,9 @@ def load_dataset(name, dir="datasets", split=0.95):
     c: np.ndarray = np.load(dataset_dir / info["corrections_path"])
     train_samples = int(len(x) * split)
     pre_normalized = info.get("pre_normalized", False)
-    if not pre_normalized:
-        # append the correction factors to the labels, to be used in the loss function
-        y = np.append(y, c, axis=1)
+    # if not pre_normalized:
+    #     # append the correction factors to the labels, to be used in the loss function
+    #     y = np.append(y, c, axis=1)
     x_train = x[:train_samples]
     y_train = y[:train_samples]
     x_val = x[train_samples:]
