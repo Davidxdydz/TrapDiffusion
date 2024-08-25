@@ -1,0 +1,58 @@
+
+# MIMO 1st
+num_layers: 1-5
+layer_sizes: 32-1024
+activations: tanh, relu, sigmoid
+output_activation: leaky_relu, sigmoid
+normed_weight: 0-1
+learning_rate: 1e-4 - 1e-1, log
+
+
+#MIMO 2nd
+loss: mae, mse
+num_layers: 3-6
+layer_size_0: 32-1024
+activation_0: tanh, relu, leaky_relu
+output_activation: leaky_relu, sigmoid
+normed_weight: <0.5
+learning_rate: max 0.03, log
+activation_1: relu
+layer_size_2: 400-900
+activation_2: relu, sigmoid
+layer_size_3: 32-900
+activation_3: tanh
+layer_size_4: 32-900
+activation_4: relu, sigmoid
+
+#MIMO 3rd
+num_layers: 5
+layer_size_0: 32-800
+activation_0: tanh, leaky_relu
+activation_1: relu, leaky_relu
+layer_size_2: 400-1000
+activation_2: leaky_relu, sigmoid
+output_activation: leaky_relu, sigmoid
+normed_weight: <0.5
+learning_rate: 1e-3
+layer_size_3: 32-900
+activation_3: tanh, leaky_relu
+layer_size_4: 32-900
+activation_4: relu, sigmoid, leaky_relu
+activation_5: sigmoid
+normed_loss: mae
+unnormed_loss: mae, mse
+
+#MIMO 4th
+num_layers: 5
+layer_size_0: 200-900
+activation_0: tanh
+layer_size_1: 100-900
+activation_1: relu
+layer_size_2: 200-1000
+activation_2: sigmoid,relu
+layer_size_3: 200-1000
+activation_3: leaky_relu
+layer_size_4: 200-1000
+activation_4: relu, sigmoid
+output_activation: sigmoid, relu
+normed_weight: 0.2 - 0.5
