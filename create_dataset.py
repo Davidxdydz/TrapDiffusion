@@ -109,6 +109,18 @@ presets = {
         "dir": "datasets",
         "pre_normalized": True,
     },
+    "MOMI_random_normalized_log": {
+        "model": "MOMI",
+        "dataset_name": "Multi-Occupation, Multi Isotope, random matrix, normalized, log",
+        "configs": 5000,
+        "initial_per_config": 100,
+        "n_timesteps": 100,
+        "log_t_eval": True,
+        "include_params": True,
+        "seed": 1,
+        "dir": "datasets",
+        "pre_normalized": True,
+    },
 }
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

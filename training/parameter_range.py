@@ -43,7 +43,7 @@ class ParameterRange:
         low, high = self.choices
         return (np.log(value) - np.log(low)) / (np.log(high) - np.log(low))
 
-    def random(self, k=None):
+    def random(self, k=None, log_sample=False):
         if self.discrete:
             if k == None:
                 return random.choice(self.choices)
@@ -52,14 +52,36 @@ class ParameterRange:
         else:
             if k == None:
                 if self.dtype == float:
+                    if log_sample:
+                        return np.exp(
+                            np.log(self.choices[0])
+                            + random.random()
+                            * (np.log(self.choices[1]) - np.log(self.choices[0]))
+                        )
                     return random.uniform(*self.choices)
                 elif self.dtype == int:
+                    if log_sample:
+                        raise ValueError("Cannot log sample integer values")
                     return random.randint(*self.choices)
             else:
                 result = []
                 for _ in range(k):
                     if self.dtype == float:
-                        result.append(random.uniform(*self.choices))
+                        if log_sample:
+                            result.append(
+                                np.exp(
+                                    np.log(self.choices[0])
+                                    + random.random()
+                                    * (
+                                        np.log(self.choices[1])
+                                        - np.log(self.choices[0])
+                                    )
+                                )
+                            )
+                        else:
+                            result.append(random.uniform(*self.choices))
                     elif self.dtype == int:
+                        if log_sample:
+                            raise ValueError("Cannot log sample integer values")
                         result.append(random.randint(*self.choices))
                 return result

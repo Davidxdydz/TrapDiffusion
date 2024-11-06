@@ -48,10 +48,10 @@ model_random.fit(
     epochs=300,  # int(factor*100),
     shuffle=True,
     callbacks=[
-        CustomTensorboard("logs/momi_random_normalized_new", name="large data"),
+        CustomTensorboard("logs/log_sampling", name="model1"),
         keras.callbacks.ReduceLROnPlateau(factor=0.5, min_lr=1e-4, patience=10),
         keras.callbacks.ModelCheckpoint(
-            "trained_models/MOMI_random_normalized_large_new.keras",
+            "trained_models/model1.keras",
             save_best_only=True,
             monitor="val_max_ae",
         ),
@@ -59,4 +59,4 @@ model_random.fit(
     ],
 )
 
-model_random.save("trained_models/MOMI_random_large_end_result_new.keras")
+model_random.save("trained_models/model1.keras")

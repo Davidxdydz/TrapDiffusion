@@ -11,7 +11,7 @@ from keras import ops
 
 
 info, (train_x, train_y), (val_x, val_y) = load_dataset(
-    "Multi-Occupation, Multi Isotope, random matrix, normalized"
+    "Multi-Occupation, Multi Isotope, random matrix, normalized, log"
 )
 train_x = ops.array(train_x)
 train_y = ops.array(train_y)
@@ -19,8 +19,13 @@ val_x = ops.array(val_x)
 val_y = ops.array(val_y)
 print(val_y.device)
 
+# model1: 1e-3
+# model2: 0.5e-3
+# model3: 2e-3
+# model4: 1e-3: 512-> 500
+# model5: 1e-3: 1024-> 1000
 
-name = "full_model_no_unnormed"
+name = "model5"
 
 
 ratio_normalizer = IsotopeNormalizer(name="normed")
@@ -30,14 +35,14 @@ inputs = Input(shape=(info["input_channels"],))
 inputs2 = Input(shape=(info["input_channels"],))
 
 
-x = Dense(1024, activation="tanh")(inputs2)
+x = Dense(10200, activation="tanh")(inputs2)
 x = Dense(512, activation="relu")(x)
 x = Dense(512, activation="sigmoid")(x)
-x = Dense(1024, activation="leaky_relu")(x)
+x = Dense(1000, activation="leaky_relu")(x)
 x = Dense(256, activation="relu")(x)
 x = Dense(info["output_channels"], activation="sigmoid")(x)
 
-normed_weight = 1
+normed_weight = 1 / 3
 unnormed_weight = 1 - normed_weight
 mlp = keras.Model(inputs=inputs2, outputs=x, name="unnormed")
 ratios = cr(inputs)
@@ -78,7 +83,7 @@ model.fit(
         keras.callbacks.ModelCheckpoint(
             f"final_models/{model.name}.keras",
             save_best_only=True,
-            monitor="val_unnormed_max_ae",
+            monitor="val_normed_max_ae",
         ),
     ],
 )

@@ -36,7 +36,7 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
             # total: 1e3 - 1e11
             n = 9
 
-            f = np.array(MultiOccupationMultiIsotope.f_range.random(n))
+            f = np.array(MultiOccupationMultiIsotope.f_range.random(n, log_sample=True))
             E = np.array(
                 sorted(MultiOccupationMultiIsotope.E_range.random(n), reverse=True)
             )
@@ -369,13 +369,13 @@ class MultiOccupationMultiIsotope(TrapDiffusion):
     def plot(self, *args, **kwargs):
         if "log_t_eval" not in kwargs:
             kwargs["log_t_eval"] = True
-        if "pre_normalized" not in kwargs:
-            kwargs["pre_normalized"] = True
+        # if "pre_normalized" not in kwargs:
+        #     kwargs["pre_normalized"] = True
         return TrapDiffusion.plot(self, *args, **kwargs)
 
     @property
     def y_unit(self):
-        return "$\\left[\\frac{trap-sites}{lattice-sites}\\right]$"
+        return ""  # "$\\left[\\frac{trap-sites}{lattice-sites}\\right]$"
 
     @property
     def xscale(self):
